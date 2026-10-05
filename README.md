@@ -10,4 +10,7 @@ dotfiles/
 ├── eww/                       # stow package → ~/.config/eww
 │   └── .config/eww/           # bar + widgets (eww.yuck, eww.scss) — WIP
 └── README.md                  # this file
+├── vm/                        # VM only — don't stow on laptop
+│   └── .vm_env                # VMware software-render vars
+└──
 ```
