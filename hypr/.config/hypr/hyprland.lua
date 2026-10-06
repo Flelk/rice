@@ -136,7 +136,8 @@ hl.animation({ leaf = "zoomFactor",    enabled = true, speed = 7,    bezier = "q
 -------------------
 
 hl.on("hyprland.start", function ()
-     hl.exec_cmd("swaybg -i ~/dotfiles/wallpapers/nothin_to_see_here_sound.png -m fill")
+     hl.exec_cmd("swaybg -i ~/dotfiles/wallpapers/stairs.png -m fill")
+--     hl.exec_cmd("eww daemon")
 --     hl.exec_cmd("eww open bar")
 end)
 
