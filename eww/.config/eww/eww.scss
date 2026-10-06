@@ -1,0 +1,19 @@
+// == colors ==
+$bg: #0e0e0e;
+$fg: #d0d0d0;
+
+// == reset ==
+
+* {
+	all: unset;
+	font-family: "JetBrainsMono Nerd Font";
+	font-size: 13px;
+}
+
+// == the bar ==
+.bar {
+	background-color: rgba($bg, 0.5); 
+	color: $fg;
+	padding: 0 12px;
+}
+

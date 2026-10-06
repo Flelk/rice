@@ -7,16 +7,12 @@
 		:exclusive true
 		(bar))	
 		
-; first widget
-(defwidget greeting []
-	(label :text "hello babygirl"))
-
 (defpoll time :interval "1s" "date '+%H:%M'")
 (defpoll date :interval "60s" "date '+%a %b %d'")
 
 (defwidget bar []
-	(centerbox :orientation "h"
-	(label :text "FlelkOS") 
+	(centerbox :class "bar" :orientation "h"
+	(label :halign "start" :text "FlelkOS") 
 	(label :text time)
-	(label :text date)))
+	(label :halign "end" :text date)))
 	
