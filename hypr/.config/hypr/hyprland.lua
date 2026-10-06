@@ -138,6 +138,7 @@ hl.animation({ leaf = "zoomFactor",    enabled = true, speed = 7,    bezier = "q
 hl.on("hyprland.start", function ()
      hl.exec_cmd("swaybg -i ~/dotfiles/wallpapers/stairs.png -m fill")
      hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+	 hl.exec_cmd("eww daemon && eww open bar")
 --     hl.exec_cmd("eww daemon")
 --     hl.exec_cmd("eww open bar")
 end)
