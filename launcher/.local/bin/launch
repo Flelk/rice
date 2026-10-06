@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+list="$HOME/.config/launcher/apps"
+choice=$(cut -d'|' -f1 "$list" | fuzzel --dmenu)
+[ -n "$choice" ] && sh -c "$(grep "^$choice|" "$list" | cut -d'|' -f2)" &

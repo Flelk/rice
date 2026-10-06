@@ -1,0 +1,4 @@
+include "/usr/share/nano/*.nanorc"
+set linenumbers
+set autoindent
+set tabsize 4
