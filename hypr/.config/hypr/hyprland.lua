@@ -59,24 +59,24 @@ hl.bind("XF86AudioPrev",         hl.dsp.exec_cmd("playerctl previous"),   { lock
 
 hl.config({
     general = {
-        gaps_in     = 5,
-        gaps_out    = 20,
-        border_size = 2,
+        gaps_in     = 4,
+        gaps_out    = 10,
+        border_size = 1,
 
         col = {
-            active_border   = { colors = {"rgba(33ccffee)", "rgba(00ff99ee)"}, angle = 45 },
-            inactive_border = "rgba(595959aa)",
+            active_border   = "rgba(d0d0d0ff)",
+            inactive_border = "rgba(2a2a2aff)",
         },
 
         layout = "dwindle",
     },
 
     decoration = {
-        rounding       = 10,
+        rounding       = 4,
         rounding_power = 2,
 
         active_opacity   = 1.0,
-        inactive_opacity = 1.0,
+        inactive_opacity = 0.7,
 
         shadow = {
             enabled      = true,
