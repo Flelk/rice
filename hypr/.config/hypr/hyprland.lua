@@ -102,8 +102,8 @@ hl.config({
     },
 
     misc = {
-        force_default_wallpaper = -1,
-        disable_hyprland_logo   = false,
+        force_default_wallpaper = 0,
+        disable_hyprland_logo   = true,
     },
 })
 
@@ -135,10 +135,10 @@ hl.animation({ leaf = "zoomFactor",    enabled = true, speed = 7,    bezier = "q
 ---- AUTOSTART ----
 -------------------
 
--- hl.on("hyprland.start", function ()
---     hl.exec_cmd("eww daemon")
+hl.on("hyprland.start", function ()
+     hl.exec_cmd("swaybg -i ~/dotfiles/wallpapers/nothin_to_see_here_sound.png -m fill")
 --     hl.exec_cmd("eww open bar")
--- end)
+end)
 
 --------------------------------
 ---- WINDOWS AND WORKSPACES ----
@@ -200,7 +200,7 @@ hl.env("HYPRCURSOR_SIZE", "12")
 
 hl.monitor({
     output   = "",
-    mode     = "preferred",
+    mode     = "1600x900",
     position = "auto",
     scale    = "1",
 })
