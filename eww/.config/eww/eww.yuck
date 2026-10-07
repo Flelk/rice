@@ -12,7 +12,27 @@
 
 (defwidget bar []
 	(centerbox :class "bar" :orientation "h"
-	(label :halign "start" :text "FlelkOS") 
+	(box :halign "start"
+		(workspaces)) 
 	(label :text time)
 	(label :halign "end" :text date)))
-	
+
+;; WORKSPACES	
+(deflisten workspace :initial "1" "~/.config/eww/scripts/workspaces.sh")
+(defwidget ws [n]
+	(button :class {workspace == n ? "ws active" : "ws"}
+		:onclick "hyprctl dispatch 'hl.dsp.focus({ workspace = ${n} })'"
+	(label :text {n == "10" ? "0" : n})))
+
+(defwidget workspaces []
+	(box :class "workspaces" :spacing 4
+		(ws :n "1")
+		(ws :n "2")
+		(ws :n "3")
+		(ws :n "4")
+		(ws :n "5")
+		(ws :n "6")
+		(ws :n "7")
+		(ws :n "8")
+		(ws :n "9")
+		(ws :n "10")))
