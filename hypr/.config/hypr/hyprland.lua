@@ -143,7 +143,7 @@ hl.animation({ leaf = "zoomFactor",    enabled = true, speed = 7,    bezier = "q
 hl.on("hyprland.start", function ()
      hl.exec_cmd("swaybg -i ~/dotfiles/wallpapers/stairs.png -m fill")
      hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
-	 hl.exec_cmd("eww daemon && eww open bar")
+	 hl.exec_cmd("eww daemon && eww open bar --id bar0 --arg monitor=0; eww open bar --id bar1 --arg monitor=1")
 --     hl.exec_cmd("eww daemon")
 --     hl.exec_cmd("eww open bar")
 end)
@@ -169,6 +169,13 @@ hl.window_rule({
         pin        = false,
     },
     no_focus = true,
+})
+
+-- eww power panel: slide in/out from the right (done on the GPU, smoother than eww's own slide)
+hl.layer_rule({
+    name      = "eww-panel-slide",
+    match     = { namespace = "^eww-panel$" },
+    animation = "slide right",
 })
 
 hl.window_rule({
@@ -220,7 +227,7 @@ hl.monitor({
 -- For Desktop (matched by description so DP-* renumbering doesn't break it)
 -- HP E273 on the left
 hl.monitor({
-    output   = "desc:HP Inc. HP E273 CNK81927R8",
+    output   = "desc:HP Inc. HP E273",
     mode     = "1920x1080@60",
     position = "0x0",
     scale    = 1,
@@ -228,7 +235,7 @@ hl.monitor({
 
 -- OMEN X 27 (240Hz) on the right
 hl.monitor({
-	output	 = "desc:HP Inc. OMEN X 27 CNK0520QDK",
+	output	 = "desc:HP Inc. OMEN X 27",
 	mode	 = "1920x1080@239.76",
 	position = "1920x0",
 	scale    = 1,

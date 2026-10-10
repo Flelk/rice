@@ -14,21 +14,29 @@ $hover: #999999;
 }
 
 // == the bar ==
-.bar {
-	background-color: rgba($bg, 0.5); 
+// floats like a window: same gap (10px), border and corners as hyprland
+// (not ".bar": eww gives each window a class named after it, so ".bar" would style the window too)
+.bar-box {
+	background-color: rgba($bg, 0.5);
 	color: $fg;
-	padding: 0 12px;
+	border: 1px solid #2a2a2a;
+	border-radius: 4px;
+	margin: 10px 10px 0 10px;
+	padding: 0 8px;
 }
 
-// workspaces
+// workspaces: empty = dim, has windows = gray, focused = white
 .ws {
 	padding: 0 6px;
-	color: $dim;
+	color: #3a3a3a;
+}
+
+.ws.occupied {
+	color: #888888;
 }
 
 .ws.active {
 	color: $fg;
-	border-bottom: 2px solid $fg;
 }
 
 .ws:hover {
@@ -45,8 +53,18 @@ $hover: #999999;
 }
 
 // power panel
-.panel {
-	background-color: rgba($bg, 0.92);
+// hover zone around the panel: ~25% of its size, plus the 10px gaps to the bar/screen edge
+.panel-zone {
+	padding: 10px 10px 100px 70px;
+}
+
+// fixed width so sections keep their size while sliding in (= panel-box min-width)
+.stage {
+	min-width: 248px;
+}
+
+.panel-box {
+	background-color: $bg;
 	color: $fg;
 	border: 1px solid #2a2a2a;
 	border-radius: 4px;
@@ -85,6 +103,35 @@ $hover: #999999;
 .action:hover {
 	color: $fg;
 	background-color: #1a1a1a;
+}
+
+// cpu/ram/vram tiles: ring gauge with the icon inside
+.stat {
+	background-color: #141414;
+	border: 1px solid #1f1f1f;
+	border-radius: 4px;
+	padding: 8px 12px;
+}
+
+.ring {
+	color: $fg;                 // filled part
+	background-color: #2a2a2a;  // track
+}
+
+// the ring sizes itself to what's inside, so the icon sets its size
+.ring-icon {
+	color: #888888;
+	font-size: 14px;
+	min-width: 38px;
+	min-height: 38px;
+}
+
+.stat-name {
+	color: $dim;
+}
+
+.stat-value {
+	color: $fg;
 }
 
 .sep {

@@ -1,79 +1,82 @@
-(defwindow bar
-	:monitor 0
-		:geometry (geometry :x "0%" :y "0%"
-							:width "100%" :height "30px"
-							:anchor "top center")
-		:stacking "fg"
-		:exclusive true
-		(bar))	
-		
-(defpoll time :interval "1s" "date '+%H:%M'")
-(defpoll date :interval "60s" "date '+%a %b %d'")
+(defwindow bar [monitor]
+	:monitor monitor
+	:geometry (geometry :x "0%" :y "0%"
+						:width "100%" :height "40px"
+						:anchor "top center")
+	:stacking "fg"
+	:exclusive true
+	(bar :monitor monitor))
 
-(defwidget bar []
-	(centerbox :class "bar" :orientation "h"
-	(box :halign "start"
-		(workspaces)) 
-	(label :text time)
-	(box :halign "end" :spacing 10
-		(label :text date)
-		(button :class "power" :onclick "~/.config/eww/scripts/panel.sh" ""))))
+(defpoll clock :interval "1s" "date '+%a %d · %H:%M'")
 
-;; WORKSPACES	
-(deflisten workspace :initial "1" "~/.config/eww/scripts/workspaces.sh")
-(defwidget ws [n]
-	(button :class {workspace == n ? "ws active" : "ws"}
-		:onclick "hyprctl dispatch 'hl.dsp.focus({ workspace = ${n} })'"
-	(label :text {n == "10" ? "0" : n})))
+;; floats like a window: 10px gap, 1px border, 4px corners (see .bar)
+(defwidget bar [monitor]
+	(centerbox :class "bar-box" :orientation "h"
+		(box :halign "start" :valign "center"
+			(workspaces))
+		(label :class "clock" :valign "center" :text clock)
+		(box :halign "end" :valign "center"
+			(button :class "power" :onclick "~/.config/eww/scripts/panel.sh toggle ${monitor}" ""))))
 
+;; WORKSPACES: the script decides which buttons show and how they look
+(deflisten workspaces :initial "[]" "~/.config/eww/scripts/workspaces.sh")
 (defwidget workspaces []
-	(box :class "workspaces" :spacing 4
-		(ws :n "1")
-		(ws :n "2")
-		(ws :n "3")
-		(ws :n "4")
-		(ws :n "5")
-		(ws :n "6")
-		(ws :n "7")
-		(ws :n "8")
-		(ws :n "9")
-		(ws :n "10")))
+	(box :class "workspaces" :spacing 2
+		(for w in workspaces
+			(button :class {w.class}
+				:onclick "hyprctl dispatch 'hl.dsp.focus({ workspace = ${w.n} })'"
+				(label :text {w.label})))))
 
-;; POWER PANEL: slides in from the right, closes when the mouse leaves
+;; POWER PANEL: hyprland slides the window in from the right (layer rule on "eww-panel"),
+;; then its sections follow one by one (panel.sh steps panel_stage 1..4).
+;; closes when the mouse leaves the hover zone
 (defvar panel_open false)
+(defvar panel_stage 0)
 (deflisten volume :initial "0" "~/.config/eww/scripts/volume.sh")
 (defpoll brightness :interval "30s" "~/.config/eww/scripts/brightness.sh get")
+(defpoll vram :interval "2s"
+	"nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader,nounits | awk -F', ' '{printf \"%d\", $1 * 100 / $2}'")
 (defpoll uptime :interval "60s" "uptime -p | sed -E 's/^up //; s/ weeks?,?/w/; s/ days?,?/d/; s/ hours?,?/h/; s/ minutes?/m/'")
 
 (defwindow panel
 	:monitor 0
-	:geometry (geometry :x "8px" :y "6px" :width "280px" :anchor "top right")
+	:geometry (geometry :x "0px" :y "0px" :anchor "top right")
 	:stacking "overlay"
 	:exclusive false
-	(box :halign "end" :space-evenly false
-		(revealer :transition "slideleft" :duration "300ms" :reveal panel_open
-			(eventbox :onhoverlost "~/.config/eww/scripts/panel.sh close"
-				(panel)))))
+	:namespace "eww-panel"
+	;; panel-zone: invisible margin (~25% of the panel) that still counts as "on it"
+	(eventbox :onhoverlost "~/.config/eww/scripts/panel.sh close"
+		(box :class "panel-zone" (panel))))
+
+;; one section of the panel; slides in from the right + fades in once panel_stage reaches n
+(defwidget stage [n]
+	(revealer :halign "end" :transition "slideleft" :duration "350ms" :reveal {panel_stage >= n}
+		(revealer :transition "crossfade" :duration "350ms" :reveal {panel_stage >= n}
+			(box :class "stage" (children)))))
 
 (defwidget panel []
-	(box :class "panel" :orientation "v" :space-evenly false :spacing 14
+	(box :class "panel-box" :orientation "v" :space-evenly false :spacing 14
 		;; profile
-		(box :space-evenly false :spacing 12
+		(stage :n 1 (box :space-evenly false :spacing 12
 			(box :class "pfp" :valign "center" (label :hexpand true :text "F"))
 			(box :orientation "v" :valign "center" :space-evenly false
 				(label :class "user" :halign "start" :text "flelk")
-				(label :class "dim" :halign "start" :text "up ${uptime}")))
+				(label :class "dim" :halign "start" :text "up ${uptime}"))))
 		;; power actions
-		(box :class "actions" :spacing 4
+		(stage :n 2 (box :class "actions" :spacing 4
 			(action :icon "⏻" :tip "Shut down" :cmd "poweroff")
 			(action :icon "󰜉" :tip "Reboot"    :cmd "reboot")
 			(action :icon "󰌾" :tip "Lock"      :cmd "lock")
 			(action :icon "󰒲" :tip "Sleep"     :cmd "suspend")
-			(action :icon "󰍃" :tip "Log out"   :cmd "logout"))
+			(action :icon "󰍃" :tip "Log out"   :cmd "logout")))
 		(box :class "sep")
 		;; stats
-		(stat :name "cpu" :value {round(EWW_CPU.avg, 0)})
-		(stat :name "ram" :value {round(EWW_RAM.used_mem_perc, 0)})
+		(stage :n 3 (box :orientation "v" :space-evenly false :spacing 6
+			(stat :icon "󰻠" :name "cpu"  :value {round(EWW_CPU.avg, 0)})
+			(stat :icon "󰍛" :name "ram"  :value {round(EWW_RAM.used_mem_perc, 0)})
+			(stat :icon "󰢮" :name "vram" :value vram)))
+		;; sliders
+		(stage :n 4 (box :orientation "v" :space-evenly false :spacing 14
 		(box :orientation "v" :space-evenly false :spacing 6
 			(box (label :class "dim" :halign "start" :text "vol")
 				(label :class "dim" :halign "end" :text "${volume}%"))
@@ -83,15 +86,16 @@
 			(box (label :class "dim" :halign "start" :text "brightness")
 				(label :class "dim" :halign "end" :text "${brightness}%"))
 			(scale :class "vol" :min 0 :max 101 :value brightness :round-digits 0
-				:onchange "~/.config/eww/scripts/brightness.sh set {}"))))
+				:onchange "~/.config/eww/scripts/brightness.sh set {}"))))))
 
 (defwidget action [icon tip cmd]
 	(button :class "action" :tooltip tip
 		:onclick "~/.config/eww/scripts/panel.sh ${cmd}"
 		(label :text icon)))
 
-(defwidget stat [name value]
-	(box :orientation "v" :space-evenly false :spacing 6
-		(box (label :class "dim" :halign "start" :text name)
-			(label :class "dim" :halign "end" :text "${value}%"))
-		(progress :class "bar-meter" :value value)))
+(defwidget stat [icon name value]
+	(box :class "stat" :space-evenly false :spacing 12
+		(circular-progress :class "ring" :value value :thickness 3 :start-at 75 :clockwise true
+			(label :class "ring-icon" :text icon))
+		(label :class "stat-name" :valign "center" :text name)
+		(label :class "stat-value" :hexpand true :halign "end" :valign "center" :text "${value}%")))
