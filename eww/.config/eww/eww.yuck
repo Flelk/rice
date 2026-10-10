@@ -7,6 +7,10 @@
 	:exclusive true
 	(bar :monitor monitor))
 
+;; bar icon: ethernet > wifi > nothing
+(defpoll net_icon :interval "5s"
+	"nmcli -t -f TYPE,STATE dev | awk -F: '$2 == \"connected\" {c[$1] = 1} END {print c[\"ethernet\"] ? \"󰈀\" : c[\"wifi\"] ? \"󰤨\" : \"󰤭\"}'")
+
 (defpoll clock :interval "1s" "date '+%a %d · %H:%M'")
 
 ;; floats like a window: 10px gap, 1px border, 4px corners (see .bar)
@@ -15,7 +19,8 @@
 		(box :halign "start" :valign "center"
 			(workspaces))
 		(label :class "clock" :valign "center" :text clock)
-		(box :halign "end" :valign "center"
+		(box :halign "end" :valign "center" :space-evenly false :spacing 4
+			(button :class "power" :onclick "~/.config/eww/scripts/net.sh toggle ${monitor}" net_icon)
 			(button :class "power" :onclick "~/.config/eww/scripts/panel.sh toggle ${monitor}" ""))))
 
 ;; WORKSPACES: the script decides which buttons show and how they look
@@ -99,3 +104,117 @@
 			(label :class "ring-icon" :text icon))
 		(label :class "stat-name" :valign "center" :text name)
 		(label :class "stat-value" :hexpand true :halign "end" :valign "center" :text "${value}%")))
+
+;; NETWORK PANEL: same slide-in + hover-to-close as the power panel (shares its "eww-panel" namespace).
+;; both tabs: known (saved wifi / paired bluetooth) first, then unknown ones nearby.
+;; wifi.sh / bt.sh only run while it's open. net.sh does the clicking.
+(defvar net_open false)
+(defvar net_tab "wifi")
+(defvar net_busy "")   ;; id of the row that's connecting/pairing right now
+(defvar net_msg "")    ;; error line under the list
+(defpoll wifi :interval "3s" :run-while net_open
+	:initial "{\"on\":false,\"known\":[],\"unknown\":[]}"
+	"~/.config/eww/scripts/wifi.sh")
+(defpoll bt :interval "2s" :run-while net_open
+	:initial "{\"on\":false,\"scanning\":false,\"known\":[],\"unknown\":[]}"
+	"~/.config/eww/scripts/bt.sh")
+
+(defwindow net
+	:monitor 0
+	:geometry (geometry :x "0px" :y "0px" :anchor "top right")
+	:stacking "overlay"
+	:exclusive false
+	:namespace "eww-panel"
+	(eventbox :onhoverlost "~/.config/eww/scripts/net.sh close"
+		(box :class "panel-zone" (net))))
+
+(defwidget net []
+	(box :class "panel-box net-box" :orientation "v" :space-evenly false :spacing 14
+		(box :spacing 4
+			(net-tab :name "wifi" :icon "󰤨" :text "wifi")
+			(net-tab :name "bt"   :icon "󰂯" :text "bluetooth"))
+		(box :class "sep")
+		(stack :selected {net_tab == "wifi" ? 0 : 1} :transition "slideleftright" :duration "250ms"
+			(wifi-tab)
+			(bt-tab))
+		(revealer :reveal {net_msg != ""} :transition "slidedown" :duration "200ms"
+			(label :class "dim" :halign "start" :text net_msg))))
+
+(defwidget net-tab [name icon text]
+	(button :class "tab ${net_tab == name ? 'active' : ''}"
+		:onclick "~/.config/eww/scripts/net.sh tab ${name}"
+		(box :space-evenly false :spacing 8 :halign "center"
+			(label :text icon)
+			(label :text text))))
+
+;; "title ......... [switch]" line at the top of each tab
+(defwidget net-head [title on cmd]
+	(box :space-evenly false :spacing 10
+		(label :class "dim" :halign "start" :hexpand true :text title)
+		(children)
+		(button :class "switch ${on ? 'on' : ''}"
+			:onclick "~/.config/eww/scripts/net.sh ${cmd}"
+			(label :text {on ? "󰔡" : "󰨙"}))))
+
+(defwidget net-row [icon name status busy onclick ?onrightclick]
+	(button :class "net-row ${busy ? 'busy' : ''}" :onclick onclick :onrightclick onrightclick
+		(box :space-evenly false :spacing 10
+			(label :class "net-row-icon" :text icon)
+			(label :halign "start" :hexpand true :limit-width 24 :text name)
+			(label :class "dim" :text {busy ? "…" : status}))))
+
+(defwidget wifi-tab []
+	(box :orientation "v" :space-evenly false :spacing 10
+		(net-head :title "wifi" :on {wifi.on} :cmd "wifi-power")
+		(scroll :class "net-list" :vscroll true :hscroll false :height 280
+			(box :orientation "v" :space-evenly false :spacing 2 :valign "start"
+				(label :class "dim" :visible {!wifi.on} :halign "start" :text "wifi is off")
+				(box :orientation "v" :space-evenly false :spacing 2 :visible {wifi.on}
+					(label :class "section" :halign "start" :text "known")
+					(box :orientation "v" :space-evenly false :spacing 2
+						(for n in {wifi.known}
+							(net-row :icon {n.icon} :name {n.ssid} :busy {net_busy == n.id}
+								:status {n.active ? "connected" : ""}
+								:onclick "~/.config/eww/scripts/net.sh wifi ${n.action} ${n.id}"
+								:onrightclick "~/.config/eww/scripts/net.sh wifi forget ${n.id}")))
+					(label :class "net-empty dim" :halign "start" :visible {arraylength(wifi.known) == 0}
+						:text "no saved networks in range")
+					(label :class "section" :halign "start" :text "unknown")
+					(box :orientation "v" :space-evenly false :spacing 2
+						(for n in {wifi.unknown}
+							(net-row :icon {n.icon} :name {n.ssid} :busy {net_busy == n.id}
+								:status {n.secure ? "󰌾" : ""}
+								:onclick "~/.config/eww/scripts/net.sh wifi ${n.action} ${n.id}")))
+					(label :class "net-empty dim" :halign "start" :visible {arraylength(wifi.unknown) == 0}
+						:text "looking for networks…"))))))
+
+(defwidget bt-tab []
+	(box :orientation "v" :space-evenly false :spacing 10
+		(net-head :title "bluetooth" :on {bt.on} :cmd "bt-power"
+			(button :class "scan" :visible {bt.on} :active {!bt.scanning}
+				:onclick "~/.config/eww/scripts/net.sh bt-scan"
+				{bt.scanning ? "scanning…" : "scan"}))
+		(scroll :class "net-list" :vscroll true :hscroll false :height 280
+			(box :orientation "v" :space-evenly false :spacing 2 :valign "start"
+				(label :class "dim" :visible {!bt.on} :halign "start" :text "bluetooth is off")
+				(box :orientation "v" :space-evenly false :spacing 2 :visible {bt.on}
+					(label :class "section" :halign "start" :text "known")
+					(box :orientation "v" :space-evenly false :spacing 2
+						(for d in {bt.known}
+							(net-row :icon {d.icon} :name {d.name} :busy {net_busy == d.mac}
+								:status {d.dongle ? (d.default ? "usb dongle · output" : "usb dongle")
+								         : d.connected ? "connected" : ""}
+								;; dongle: make it the audio output. bluetooth: (dis)connect, right click forgets
+								:onclick {d.dongle ? "~/.config/eww/scripts/net.sh audio ${d.sink}"
+								          : "~/.config/eww/scripts/net.sh bt ${d.connected ? 'disconnect' : 'connect'} ${d.mac}"}
+								:onrightclick {d.dongle ? "" : "~/.config/eww/scripts/net.sh bt forget ${d.mac}"})))
+					(label :class "net-empty dim" :halign "start" :visible {arraylength(bt.known) == 0}
+						:text "nothing paired yet")
+					(label :class "section" :halign "start" :text "unknown")
+					(box :orientation "v" :space-evenly false :spacing 2
+						(for d in {bt.unknown}
+							(net-row :icon {d.icon} :name {d.name} :busy {net_busy == d.mac}
+								:status "pair"
+								:onclick "~/.config/eww/scripts/net.sh bt pair ${d.mac}")))
+					(label :class "net-empty dim" :halign "start" :visible {arraylength(bt.unknown) == 0}
+						:text {bt.scanning ? "looking…" : "nothing nearby"}))))))

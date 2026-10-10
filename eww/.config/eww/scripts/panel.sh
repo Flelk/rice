@@ -9,6 +9,7 @@ if [ -z "$PANEL_DETACHED" ]; then
 fi
 
 open() {
+    ~/.config/eww/scripts/net.sh close   # one panel at a time
     eww open panel --screen "${1:-0}" && eww update panel_open=true
     # sections fade in one after another
     for n in 1 2 3 4; do sleep 0.08; eww update panel_stage=$n; done

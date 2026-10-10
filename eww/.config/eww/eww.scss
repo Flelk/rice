@@ -161,3 +161,78 @@ $hover: #999999;
 	min-height: 10px;
 	margin: -4px 0;
 }
+
+// network panel
+.net-box {
+	min-width: 300px;
+}
+
+.tab {
+	padding: 6px 0;
+	border-radius: 4px;
+	color: $dim;
+}
+
+.tab:hover,
+.tab.active {
+	color: $fg;
+}
+
+.tab.active {
+	background-color: #1a1a1a;
+}
+
+.switch {
+	color: $dim;
+	label {
+		font-size: 18px;
+	}
+}
+
+.switch.on {
+	color: $fg;
+}
+
+.switch:hover,
+.scan:hover {
+	color: $hover;
+}
+
+.scan {
+	color: $dim;
+}
+
+.net-row {
+	padding: 6px 8px;
+	border-radius: 4px;
+}
+
+.net-row:hover {
+	background-color: #1a1a1a;
+}
+
+.net-row.busy {
+	color: $dim;
+}
+
+.net-row-icon {
+	color: #888888;
+	min-width: 18px;
+}
+
+// "known" / "unknown" headings in the bluetooth tab
+.section {
+	color: $dim;
+	font-size: 11px;
+	margin: 8px 0 4px 0;
+}
+
+.net-empty {
+	padding: 2px 8px;
+}
+
+.net-list scrollbar slider {
+	background-color: #2a2a2a;
+	border-radius: 2px;
+	min-width: 3px;
+}
