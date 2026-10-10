@@ -4,7 +4,8 @@ Ecosystem:
 dotfiles/
 ├── bash/                      # stow package → ~
 │   ├── .bashrc
-│   └── .bash_profile          # login env, autostarts Hyprland on tty1
+│   ├── .bash_profile          # login env, autostarts Hyprland on tty1
+│   └── .local/bin/strike      # new-terminal intro: tte thunderstorm hits a big > (strike-classic: old bash one)
 ├── hypr/                      # stow package → ~/.config/hypr
 │   └── .config/hypr/
 │       ├── hyprland.lua       # monitor, programs, autostart, env, binds
@@ -17,6 +18,9 @@ dotfiles/
 ├── launcher/                  # stow package → ~/.config/launcher, ~/.local
 │   ├── .config/launcher/apps  # launcher entries: Name|command
 │   └── .local/                # launch, xdph-fuzzel-picker, discord.desktop
+├── fastfetch/                 # stow package → ~/.config/fastfetch
+│   ├── .config/fastfetch/     # config.jsonc: os, kernel, packages, cpu, gpu, memory + logos
+│   └── .local/bin/fetch       # fastfetch with the animated logo (kitty)
 ├── kitty/                     # stow package → ~/.config/kitty
 ├── nano/                      # stow package → ~/.config/nano
 ├── wallpapers/                # submodule
@@ -32,7 +36,7 @@ dotfiles/
 git clone --recurse-submodules git@github.com:Flelk/dotfiles.git ~/dotfiles
 sudo pacman -S --needed - < ~/dotfiles/packages.txt
 yay -S --needed - < ~/dotfiles/aur.txt
-cd ~/dotfiles && stow --no-folding bash hypr eww fuzzel launcher kitty nano
+cd ~/dotfiles && stow --no-folding bash hypr eww fuzzel fastfetch launcher kitty nano
 ```
 `--no-folding` matters for `launcher`: without it stow links all of `~/.local`
 into the repo, and apps start writing their data into it.

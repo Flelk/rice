@@ -1,2 +1,3 @@
 eww
 google-chrome
+python-terminaltexteffects

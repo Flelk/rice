@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# fastfetch with an animated logo (kitty only). fastfetch can't animate, so kitty plays
+# the image itself (it keeps looping after we exit) and fastfetch prints its info next to
+# a blank logo of the same size. Outside kitty this is just plain fastfetch.
+#   fetch [IMAGE]   default: ~/.config/fastfetch/devil.png (an animated png; gifs work too)
+
+img=${1:-$HOME/.config/fastfetch/devil.png}
+W=22 H=10   # logo size in cells: about 200x200px at the current font size
+
+[[ -n $KITTY_WINDOW_ID && -t 1 ]] || exec fastfetch
+
+# make room below the cursor (scrolls if needed), then find out which row we're on
+printf '%*s' "$H" '' | tr ' ' '\n'
+printf '\e[%dA' "$H"
+IFS='[;' read -rsd R -p $'\e[6n' _ row _ </dev/tty
+
+kitten icat --place "${W}x${H}@0x$(( row - 1 ))" --scale-up "$img"
+
+blank=
+for (( i = 0; i < H; i++ )); do blank+=$(printf "%${W}s" '')$'\n'; done
+fastfetch --logo-type data --logo "$blank" --logo-width "$W" --logo-height "$H" --logo-padding-right 3

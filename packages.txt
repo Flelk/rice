@@ -19,3 +19,4 @@ playerctl
 ttf-jetbrains-mono-nerd
 discord
 grim
+fastfetch

@@ -11,7 +11,7 @@
 (defpoll net_icon :interval "5s"
 	"nmcli -t -f TYPE,STATE dev | awk -F: '$2 == \"connected\" {c[$1] = 1} END {print c[\"ethernet\"] ? \"󰈀\" : c[\"wifi\"] ? \"󰤨\" : \"󰤭\"}'")
 
-(defpoll clock :interval "1s" "date '+%a %d · %H:%M'")
+(defpoll clock :interval "1s" "date '+%a %d · %H:%M:%S'")
 
 ;; floats like a window: 10px gap, 1px border, 4px corners (see .bar)
 (defwidget bar [monitor]

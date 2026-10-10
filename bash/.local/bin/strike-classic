@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Terminal intro: rain falls, lightning strikes the > in the bottom-left corner,
+# then the screen clears and the prompt starts down there (where the > got hit).
+# Any key skips it. Run from .bashrc on new terminals.
+
+rows=$(tput lines) cols=$(tput cols)
+(( rows >= 10 && cols >= 20 )) || exit 0
+
+RAIN=$'\e[38;5;67m'     # dull blue
+BOLT=$'\e[1;38;5;229m'  # pale yellow
+DIM=$'\e[38;5;136m'     # fading bolt
+HIT=$'\e[1;38;5;231m'   # white-hot >
+OFF=$'\e[0m'
+
+finish() {
+	printf '\e]111\a%s\e[2J\e[%dH\e[?25h' "$OFF" "$rows"   # bg back, clear, cursor to the bottom row
+}
+trap 'finish; exit' INT TERM
+printf '\e[?25l\e[2J\e[%dH\e[90m>%s' "$rows" "$OFF"   # the > waits in the corner
+
+# rain: drop i is at row ry[i], column rx[i], falling rv[i] rows per frame
+n=$(( cols / 4 ))
+ry=() rx=() rv=()
+for (( i = 0; i < n; i++ )); do
+	ry[i]=$(( RANDOM % rows - rows )) rx[i]=$(( RANDOM % cols + 1 )) rv[i]=$(( RANDOM % 2 + 1 ))
+done
+
+# bolt: zigzags from the top down to row rows-1, column 1 (just above the >).
+# it can drift at most one column per row, so it starts close enough to get there
+by=() bx=() bc=()
+x=$(( RANDOM % (rows / 3) + 3 ))
+for (( y = 1; y < rows; y++ )); do
+	left=$(( rows - y ))   # rows still to go, counting this one
+	dist=$(( x - 1 ))
+	if (( dist >= left )); then step=-1
+	elif (( dist == 0 )); then step=$(( RANDOM % 2 ))
+	else step=$(( RANDOM % 3 - 1 )); (( dist + 1 >= left && step == 1 )) && step=0
+	fi
+	case $step in -1) c='╱' ;; 0) c='│' ;; 1) c='╲' ;; esac   # box drawing: fills the whole cell, so no gaps
+	(( step == 1 )) && x=$(( x + 1 ))
+	by+=("$y") bx+=("$x") bc+=("$c")
+	(( step == -1 )) && x=$(( x - 1 ))
+done
+
+draw_bolt() {  # draw_bolt COLOR: whole bolt in one color ("" erases it)
+	local out=$1 i ch
+	for i in "${!by[@]}"; do
+		ch=${bc[i]}; [[ -z $1 ]] && ch=' '
+		out+=$'\e['"${by[i]};${bx[i]}H$ch"
+	done
+	printf '%s%s' "$out" "$OFF"
+}
+
+strike=14 frames=34 bolt=
+for (( f = 0; f < frames; f++ )); do
+	out=$RAIN
+	for (( i = 0; i < n; i++ )); do
+		(( ry[i] >= 1 && ry[i] < rows )) && out+=$'\e['"${ry[i]};${rx[i]}H "
+		ry[i]=$(( ry[i] + rv[i] ))
+		if (( ry[i] >= rows )); then
+			# the rain stops after the strike: drops that land don't come back
+			(( f < strike + 6 )) && ry[i]=$(( RANDOM % 4 - 3 )) rx[i]=$(( RANDOM % cols + 1 )) || ry[i]=-999
+		fi
+		(( ry[i] >= 1 )) && out+=$'\e['"${ry[i]};${rx[i]}H|"
+	done
+	printf '%s%s' "$out" "$OFF"
+
+	case $(( f - strike )) in
+		0) bolt=$BOLT; printf '\e]11;#d0d0d0\a' ;;      # flash
+		1) printf '\e]111\a' ;;
+		2) bolt=; draw_bolt "" ;;                        # flicker
+		3) bolt=$BOLT; printf '\e]11;#3a3a3a\a' ;;
+		4) printf '\e]111\a' ;;
+		6) bolt=$DIM ;;
+		9) bolt=; draw_bolt ""; printf '\e[%dH\e[90m>%s' "$rows" "$OFF" ;;   # > cools down
+	esac
+	# redrawn every frame: the rain would leave holes in it otherwise
+	[[ -n $bolt ]] && draw_bolt "$bolt"
+	(( f >= strike && f < strike + 9 )) && printf '\e[%dH%s>%s' "$rows" "$HIT" "$OFF"
+
+	read -rsn1 -t 0.05 && break
+done
+
+finish

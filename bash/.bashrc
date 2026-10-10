@@ -12,5 +12,11 @@ alias grep='grep --color=auto'
 # PS1='\[\e[1;37m\]\u\[\e[0m\] \[\e[90m\]>\[\e[0m\] '
 
 # With the File Path
-PS1='\[\e[1;37m\]\u\[\e[0m\] \[\e[90m\]\w >\[\e[0m\] '
+# PS1='\[\e[1;37m\]\u\[\e[0m\] \[\e[90m\]\w >\[\e[0m\] '
+
+# Just >
+PS1='\[\e[90m\]>\[\e[0m\] '
 export PATH="$HOME/.local/bin:$PATH"
+
+# new kitty window (not nested shells): rain + lightning on the >, then fetch (fastfetch + animated logo)
+[[ -n $KITTY_WINDOW_ID && $SHLVL == 1 && -t 1 ]] && { strike; fetch; }
