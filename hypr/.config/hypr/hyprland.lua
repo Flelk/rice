@@ -15,7 +15,9 @@ local mainMod = "SUPER"
 -- General Keybinds:
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + W",      hl.dsp.window.close())
+hl.bind(mainMod .. " + SHIFT + RETURN", hl.dsp.exec_cmd("google-chrome-stable"))
 hl.bind(mainMod .. " + M",      hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
+hl.bind(mainMod .. " + L",      hl.dsp.exec_cmd("pidof hyprlock || hyprlock"))
 hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + I",      hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + SPACE",  hl.dsp.exec_cmd(menu))
@@ -79,7 +81,7 @@ hl.config({
         rounding_power = 2,
 
 		active_opacity   = 0.99,
-        inactive_opacity = 0.3,
+        inactive_opacity = 0.7,
 
         shadow = {
             enabled      = true,
@@ -185,6 +187,10 @@ hl.config({
         kb_layout    = "us",
         follow_mouse = 1,
 
+        -- Windows speed 7/20, no "Enhance pointer precision" (0.625x)
+        accel_profile = "flat",
+        sensitivity   = -0.375,
+
         touchpad = {
             natural_scroll = false,
         },
@@ -204,13 +210,29 @@ hl.env("HYPRCURSOR_SIZE", "12")
 ---- MONITORS ----
 ------------------
 
+-- For Laptop
 hl.monitor({
-    output   = "",
-    mode     = "1600x900",
-    position = "auto",
-    scale    = "1",
+	output	 = "eDP-1",
+	mode	 = "preferred",
+	position = "0x0",
+	scale 	 = 1,
+})
+-- For Desktop (matched by description so DP-* renumbering doesn't break it)
+-- HP E273 on the left
+hl.monitor({
+    output   = "desc:HP Inc. HP E273 CNK81927R8",
+    mode     = "1920x1080@60",
+    position = "0x0",
+    scale    = 1,
 })
 
+-- OMEN X 27 (240Hz) on the right
+hl.monitor({
+	output	 = "desc:HP Inc. OMEN X 27 CNK0520QDK",
+	mode	 = "1920x1080@239.76",
+	position = "1920x0",
+	scale    = 1,
+})
 -----------------------
 ----- PERMISSIONS -----
 -----------------------

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Screen-share picker for xdg-desktop-portal-hyprland using fuzzel
+# instead of the default hyprland-share-picker window.
+list=$(
+    hyprctl monitors | awk '/^Monitor/{m=$2} /description:/{sub(/.*HP Inc. /,""); print "screen:" m "\tMonitor " $0}'
+    printf '%s' "$XDPH_WINDOW_SHARING_LIST" | sed 's/\[HE>\]/\n/g' |
+        awk -F'\\[HC>\\]|\\[HT>\\]' 'NF>=3{print "window:" $1 "\tWindow  " $2 ": " $3}'
+)
+choice=$(printf '%s\n' "$list" | cut -f2 | fuzzel --dmenu --prompt "Share: ") || exit 1
+sel=$(printf '%s\n' "$list" | awk -F'\t' -v c="$choice" '$2==c{print $1; exit}')
+[ -n "$sel" ] || exit 1
+echo "[SELECTION]r/$sel"

@@ -13,3 +13,4 @@ alias grep='grep --color=auto'
 
 # With the File Path
 PS1='\[\e[1;37m\]\u\[\e[0m\] \[\e[90m\]\w >\[\e[0m\] '
+export PATH="$HOME/.local/bin:$PATH"

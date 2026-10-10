@@ -15,7 +15,9 @@
 	(box :halign "start"
 		(workspaces)) 
 	(label :text time)
-	(label :halign "end" :text date)))
+	(box :halign "end" :spacing 10
+		(label :text date)
+		(button :class "power" :onclick "~/.config/eww/scripts/panel.sh" ""))))
 
 ;; WORKSPACES	
 (deflisten workspace :initial "1" "~/.config/eww/scripts/workspaces.sh")
@@ -36,3 +38,60 @@
 		(ws :n "8")
 		(ws :n "9")
 		(ws :n "10")))
+
+;; POWER PANEL: slides in from the right, closes when the mouse leaves
+(defvar panel_open false)
+(deflisten volume :initial "0" "~/.config/eww/scripts/volume.sh")
+(defpoll brightness :interval "30s" "~/.config/eww/scripts/brightness.sh get")
+(defpoll uptime :interval "60s" "uptime -p | sed -E 's/^up //; s/ weeks?,?/w/; s/ days?,?/d/; s/ hours?,?/h/; s/ minutes?/m/'")
+
+(defwindow panel
+	:monitor 0
+	:geometry (geometry :x "8px" :y "6px" :width "280px" :anchor "top right")
+	:stacking "overlay"
+	:exclusive false
+	(box :halign "end" :space-evenly false
+		(revealer :transition "slideleft" :duration "300ms" :reveal panel_open
+			(eventbox :onhoverlost "~/.config/eww/scripts/panel.sh close"
+				(panel)))))
+
+(defwidget panel []
+	(box :class "panel" :orientation "v" :space-evenly false :spacing 14
+		;; profile
+		(box :space-evenly false :spacing 12
+			(box :class "pfp" :valign "center" (label :hexpand true :text "F"))
+			(box :orientation "v" :valign "center" :space-evenly false
+				(label :class "user" :halign "start" :text "flelk")
+				(label :class "dim" :halign "start" :text "up ${uptime}")))
+		;; power actions
+		(box :class "actions" :spacing 4
+			(action :icon "⏻" :tip "Shut down" :cmd "poweroff")
+			(action :icon "󰜉" :tip "Reboot"    :cmd "reboot")
+			(action :icon "󰌾" :tip "Lock"      :cmd "lock")
+			(action :icon "󰒲" :tip "Sleep"     :cmd "suspend")
+			(action :icon "󰍃" :tip "Log out"   :cmd "logout"))
+		(box :class "sep")
+		;; stats
+		(stat :name "cpu" :value {round(EWW_CPU.avg, 0)})
+		(stat :name "ram" :value {round(EWW_RAM.used_mem_perc, 0)})
+		(box :orientation "v" :space-evenly false :spacing 6
+			(box (label :class "dim" :halign "start" :text "vol")
+				(label :class "dim" :halign "end" :text "${volume}%"))
+			(scale :class "vol" :min 0 :max 101 :value volume :round-digits 0
+				:onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%"))
+		(box :orientation "v" :space-evenly false :spacing 6
+			(box (label :class "dim" :halign "start" :text "brightness")
+				(label :class "dim" :halign "end" :text "${brightness}%"))
+			(scale :class "vol" :min 0 :max 101 :value brightness :round-digits 0
+				:onchange "~/.config/eww/scripts/brightness.sh set {}"))))
+
+(defwidget action [icon tip cmd]
+	(button :class "action" :tooltip tip
+		:onclick "~/.config/eww/scripts/panel.sh ${cmd}"
+		(label :text icon)))
+
+(defwidget stat [name value]
+	(box :orientation "v" :space-evenly false :spacing 6
+		(box (label :class "dim" :halign "start" :text name)
+			(label :class "dim" :halign "end" :text "${value}%"))
+		(progress :class "bar-meter" :value value)))

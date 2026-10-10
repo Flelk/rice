@@ -34,3 +34,83 @@ $hover: #999999;
 .ws:hover {
 	color: $hover;
 }
+
+// power button
+.power {
+	padding: 0 4px;
+}
+
+.power:hover {
+	color: $hover;
+}
+
+// power panel
+.panel {
+	background-color: rgba($bg, 0.92);
+	color: $fg;
+	border: 1px solid #2a2a2a;
+	border-radius: 4px;
+	padding: 16px;
+	min-width: 248px;
+}
+
+.dim {
+	color: $dim;
+}
+
+.user {
+	font-size: 15px;
+}
+
+.pfp {
+	min-width: 44px;
+	min-height: 44px;
+	border-radius: 50%;
+	border: 1px solid #2a2a2a;
+	background-color: #1a1a1a;
+	label {
+		font-size: 20px;
+	}
+}
+
+.action {
+	padding: 6px 0;
+	border-radius: 4px;
+	color: $dim;
+	label {
+		font-size: 15px;
+	}
+}
+
+.action:hover {
+	color: $fg;
+	background-color: #1a1a1a;
+}
+
+.sep {
+	min-height: 1px;
+	background-color: #2a2a2a;
+}
+
+// meters + volume share one look
+.bar-meter trough,
+.vol trough {
+	background-color: #2a2a2a;
+	border-radius: 2px;
+	min-height: 3px;
+}
+
+.bar-meter progress,
+.vol highlight {
+	background-color: $fg;
+	border-radius: 2px;
+	min-height: 3px;
+}
+
+.vol slider {
+	background-color: $fg;
+	border-radius: 50%;
+	min-width: 10px;
+	min-height: 10px;
+	margin: -4px 0;
+}
