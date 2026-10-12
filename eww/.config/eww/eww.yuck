@@ -20,6 +20,11 @@
 			(workspaces))
 		(label :class "clock" :valign "center" :text clock)
 		(box :halign "end" :valign "center" :space-evenly false :spacing 4
+			;; screenshot: click = select a region, right click = whole monitor (also SUPER SHIFT S)
+			(button :class "power" :tooltip "screenshot (right click: whole screen)"
+				:onclick "~/.config/eww/scripts/screenshot.sh"
+				:onrightclick "~/.config/eww/scripts/screenshot.sh screen"
+				"󰹑")
 			(button :class "power" :onclick "~/.config/eww/scripts/net.sh toggle ${monitor}" net_icon)
 			(button :class "power" :onclick "~/.config/eww/scripts/panel.sh toggle ${monitor}" ""))))
 

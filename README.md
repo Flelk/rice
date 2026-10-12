@@ -22,6 +22,7 @@ dotfiles/
 │   ├── .config/fastfetch/     # config.jsonc: os, kernel, packages, cpu, gpu, memory + logos
 │   └── .local/bin/fetch       # fastfetch with the animated logo (kitty)
 ├── kitty/                     # stow package → ~/.config/kitty
+├── mako/                      # stow package → ~/.config/mako (notifications)
 ├── nano/                      # stow package → ~/.config/nano
 ├── wallpapers/                # submodule
 ├── packages.txt               # pacman packages
@@ -36,7 +37,7 @@ dotfiles/
 git clone --recurse-submodules git@github.com:Flelk/dotfiles.git ~/dotfiles
 sudo pacman -S --needed - < ~/dotfiles/packages.txt
 yay -S --needed - < ~/dotfiles/aur.txt
-cd ~/dotfiles && stow --no-folding bash hypr eww fuzzel fastfetch launcher kitty nano
+cd ~/dotfiles && stow --no-folding bash hypr eww fuzzel fastfetch launcher kitty mako nano
 ```
 `--no-folding` matters for `launcher`: without it stow links all of `~/.local`
 into the repo, and apps start writing their data into it.

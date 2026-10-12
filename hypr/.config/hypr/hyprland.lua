@@ -3,7 +3,7 @@
 ---------------------
 
 local terminal    = "kitty"
-local fileManager = "dolphin"
+local fileManager = "thunar"
 local menu        = "fuzzel"
 
 ---------------------
@@ -25,6 +25,7 @@ hl.bind(mainMod .. " + P",      hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + J",      hl.dsp.layout("togglesplit"))
 hl.bind(mainMod .. " + C",		hl.dsp.send_shortcut({ mods = "CTRL", key = "Insert" }))
 hl.bind(mainMod .. " + V",		hl.dsp.send_shortcut({ mods = "SHIFT", key = "Insert" }))
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("~/.config/eww/scripts/screenshot.sh"))
 
 
 -- Window Focus:
@@ -143,6 +144,8 @@ hl.animation({ leaf = "zoomFactor",    enabled = true, speed = 7,    bezier = "q
 hl.on("hyprland.start", function ()
      hl.exec_cmd("swaybg -i ~/dotfiles/wallpapers/stairs.png -m fill")
      hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+     hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
+     hl.exec_cmd("mako")
 	 hl.exec_cmd("eww daemon && eww open bar --id bar0 --arg monitor=0; eww open bar --id bar1 --arg monitor=1")
 --     hl.exec_cmd("eww daemon")
 --     hl.exec_cmd("eww open bar")

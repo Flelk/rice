@@ -1,0 +1,31 @@
+# mako: same palette as eww/kitty/fuzzel/hypr
+#   bg #0e0e0e  fg #d0d0d0  dim #555555  line #2a2a2a
+
+font=JetBrainsMono Nerd Font 11
+background-color=#0e0e0eeb
+text-color=#d0d0d0
+border-color=#2a2a2a
+progress-color=over #1a1a1a
+
+# same 1px border, 4px corners and 10px gap as hyprland windows / the bar
+border-size=1
+border-radius=4
+padding=12,14
+margin=6
+outer-margin=10
+width=340
+height=120
+max-visible=4
+anchor=top-right
+layer=overlay
+icons=0
+markup=1
+format=<b>%s</b>\n%b
+default-timeout=5000
+
+[urgency=low]
+text-color=#555555
+
+[urgency=critical]
+border-color=#a86464
+default-timeout=0
