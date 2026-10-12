@@ -34,7 +34,7 @@ dotfiles/
 
 ## Install
 ```
-git clone --recurse-submodules git@github.com:Flelk/dotfiles.git ~/dotfiles
+git clone --recurse-submodules git@github.com:Flelk/rice.git ~/dotfiles
 sudo pacman -S --needed - < ~/dotfiles/packages.txt
 yay -S --needed - < ~/dotfiles/aur.txt
 cd ~/dotfiles && stow --no-folding bash hypr eww fuzzel fastfetch launcher kitty mako nano
