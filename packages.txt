@@ -32,3 +32,4 @@ gnome-keyring
 pacman-contrib
 code
 power-profiles-daemon
+obsidian

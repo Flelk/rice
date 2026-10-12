@@ -11,6 +11,7 @@ fi
 open() {
     ~/.config/eww/scripts/net.sh close   # one panel at a time
     ~/.config/eww/scripts/start.sh close
+    ~/.config/eww/scripts/notes.sh close
     # everything is shown before the window maps: no staged reveal, so the
     # sliders are usable right away and the layer doesn't resize while sliding in
     eww update panel_stage=4 panel_open=true

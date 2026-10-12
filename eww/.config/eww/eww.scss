@@ -366,3 +366,44 @@ $hover: #999999;
 .mode-icon {
 	font-size: 16px;
 }
+
+// notes panel: notebooks on the right, pages drawer slides out to the left
+.notes-box {
+	min-width: 260px;
+}
+
+.notes-drawer {
+	margin-right: 8px;
+	min-width: 240px;
+}
+
+.net-row.active {
+	background-color: #1a1a1a;
+}
+
+.notes-meta {
+	font-size: 11px;
+}
+
+.notes-open {
+	padding: 4px 10px;
+	border: 1px solid #2a2a2a;
+	border-radius: 4px;
+	color: $dim;
+}
+
+.notes-open:hover {
+	color: $fg;
+	background-color: #1a1a1a;
+}
+
+.notes-add {
+	padding: 2px 6px;
+	border-radius: 4px;
+	color: $dim;
+}
+
+.notes-add:hover {
+	color: $fg;
+	background-color: #1a1a1a;
+}

@@ -27,6 +27,8 @@
 			(workspaces))
 		(label :class "clock" :valign "center" :text clock)
 		(box :halign "end" :valign "center" :space-evenly false :spacing 4
+			;; notes (obsidian): notebooks list + pages drawer
+			(button :class "power" :tooltip "notes" :onclick "~/.config/eww/scripts/notes.sh toggle ${monitor}" "󰠮")
 			;; screenshot: click = select a region, right click = whole monitor (also SUPER SHIFT S)
 			(button :class "power" :tooltip "screenshot (right click: whole screen)"
 				:onclick "~/.config/eww/scripts/screenshot.sh"
@@ -381,3 +383,73 @@
 								:onclick "~/.config/eww/scripts/net.sh bt pair ${d.mac}")))
 					(label :class "net-empty dim" :halign "start" :visible {arraylength(bt.unknown) == 0}
 						:text {bt.scanning ? "looking…" : "nothing nearby"}))))))
+
+;; NOTES PANEL (obsidian): every folder in ~/Notes is a notebook. clicking one slides its pages out
+;; to the left, "open" jumps to its last edited page, right click deletes (asks first, goes to the trash). same slide-in + hover-to-close as the power
+;; panel (shares its "eww-panel" namespace). notes.sh does the clicking.
+(defvar notes_open false)
+(defvar notes_books "[]")   ;; [{id, name, pages, age}]
+(defvar notes_sel -1)       ;; id of the notebook in the drawer, -1 = drawer closed
+(defvar notes_book "")      ;; its name
+(defvar notes_pages "[]")   ;; its sections: [{name, pages: [{id, name, age}]}]
+(defvar notes_drawer_h 0)
+
+(defwindow notes
+	:monitor 0
+	:geometry (geometry :x "0px" :y "0px" :anchor "top right")
+	:stacking "overlay"
+	:exclusive false
+	:namespace "eww-panel"
+	(eventbox :onhoverlost "~/.config/eww/scripts/notes.sh close"
+		(box :class "panel-zone" :space-evenly false
+			(revealer :valign "start" :transition "slideleft" :duration "250ms" :reveal {notes_sel >= 0}
+				(notes-drawer))
+			(notes))))
+
+(defwidget notes []
+	(box :class "panel-box notes-box" :orientation "v" :space-evenly false :spacing 10
+		(notes-head :title "notes" :tip "new notebook" :cmd "new-book")
+		(box :class "sep")
+		(label :class "dim net-empty" :halign "start" :visible {notes_books == "[]"}
+			:text "no notebooks yet, + makes one")
+		(box :orientation "v" :space-evenly false :spacing 2
+			(for b in notes_books
+				(box :space-evenly false :spacing 4
+					(button :class "net-row ${notes_sel == b.id ? 'active' : ''}" :hexpand true
+						:onclick "~/.config/eww/scripts/notes.sh book ${b.id}"
+						:onrightclick "~/.config/eww/scripts/notes.sh del-book ${b.id}"
+						(box :space-evenly false :spacing 10
+							(label :class "net-row-icon" :text "󰠮")
+							(box :orientation "v" :space-evenly false
+								(label :halign "start" :limit-width 20 :text {b.name})
+								(label :class "dim notes-meta" :halign "start"
+									:text "${b.pages} ${b.pages == 1 ? 'page' : 'pages'} · ${b.age}"))))
+					(button :class "notes-open" :valign "center"
+						:onclick "~/.config/eww/scripts/notes.sh open ${b.id}" "open"))))))
+
+;; pages of the selected notebook, grouped by section (loose pages first)
+(defwidget notes-drawer []
+	(box :class "panel-box notes-drawer" :orientation "v" :space-evenly false :spacing 10
+		(notes-head :title notes_book :tip "new page" :cmd "new-page")
+		(box :class "sep")
+		(label :class "dim net-empty" :halign "start" :visible {notes_pages == "[]"}
+			:text "no pages yet, + makes one")
+		(scroll :vscroll true :hscroll false :height notes_drawer_h   ;; 0 when empty (hiding it with :visible
+			;; breaks it: rows added while hidden never show)
+			(box :orientation "v" :space-evenly false :spacing 2
+				(for s in notes_pages
+					(box :orientation "v" :space-evenly false :spacing 2
+						(label :class "section" :halign "start" :visible {s.name != ""} :text {s.name})
+						(for p in {s.pages}
+							(button :class "net-row" :onclick "~/.config/eww/scripts/notes.sh page ${p.id}"
+								:onrightclick "~/.config/eww/scripts/notes.sh del-page ${p.id}"
+								(box :space-evenly false :spacing 10
+									(label :class "net-row-icon" :text {p.canvas ? "󰕠" : "󰈙"})
+									(label :halign "start" :hexpand true :limit-width 22 :text {p.name})
+									(label :class "dim notes-meta" :text {p.age}))))))))))
+
+;; "title ............ +" line at the top of both
+(defwidget notes-head [title tip cmd]
+	(box :space-evenly false
+		(label :class "user" :halign "start" :hexpand true :limit-width 20 :text title)
+		(button :class "notes-add" :tooltip tip :onclick "~/.config/eww/scripts/notes.sh ${cmd}" "󰐕")))

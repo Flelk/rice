@@ -21,6 +21,7 @@ PINNED=~/.config/eww/pinned
 open() {
     ~/.config/eww/scripts/panel.sh close   # one panel at a time
     ~/.config/eww/scripts/net.sh close
+    ~/.config/eww/scripts/notes.sh close
     eww update start_pinned="$($APPS pinned)" start_query="" start_results="[]" start_rice=false
     eww open start --screen "${1:-0}" && eww update start_open=true
     # sections fade in one after another
