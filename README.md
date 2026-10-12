@@ -5,7 +5,7 @@ dotfiles/
 ├── bash/                      # stow package → ~
 │   ├── .bashrc
 │   ├── .bash_profile          # login env, autostarts Hyprland on tty1
-│   └── .local/bin/strike      # new-terminal intro: tte thunderstorm hits a big > (strike-classic: old bash one)
+│   └── .local/bin/strike      # new-terminal intro: snow + hail pile on a small > (strike-classic: old bash rain)
 ├── hypr/                      # stow package → ~/.config/hypr
 │   └── .config/hypr/
 │       ├── hyprland.lua       # monitor, programs, autostart, env, binds
@@ -42,4 +42,12 @@ cd ~/dotfiles && stow --no-folding bash hypr eww fuzzel fastfetch launcher kitty
 `--no-folding` matters for `launcher`: without it stow links all of `~/.local`
 into the repo, and apps start writing their data into it.
 
-Brightness (eww panel) uses DDC/CI: turn DDC/CI on in each monitor's menu.
+Then turn on wifi/bluetooth (the eww net panel) and power modes (the power panel) and unlock the keyring at login:
+```
+sudo systemctl enable --now NetworkManager bluetooth power-profiles-daemon
+```
+In `/etc/pam.d/login`, add `auth optional pam_gnome_keyring.so` after the last `auth` line
+and `session optional pam_gnome_keyring.so auto_start` after the last `session` line.
+
+Brightness (eww panel) uses the backlight on a laptop and DDC/CI on a desktop: turn DDC/CI
+on in each monitor's menu.

@@ -10,9 +10,11 @@ fi
 
 open() {
     ~/.config/eww/scripts/net.sh close   # one panel at a time
-    eww open panel --screen "${1:-0}" && eww update panel_open=true
-    # sections fade in one after another
-    for n in 1 2 3 4; do sleep 0.08; eww update panel_stage=$n; done
+    ~/.config/eww/scripts/start.sh close
+    # everything is shown before the window maps: no staged reveal, so the
+    # sliders are usable right away and the layer doesn't resize while sliding in
+    eww update panel_stage=4 panel_open=true
+    eww open panel --screen "${1:-0}"
 }
 
 close() {

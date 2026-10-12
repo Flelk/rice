@@ -18,5 +18,5 @@ alias grep='grep --color=auto'
 PS1='\[\e[90m\]>\[\e[0m\] '
 export PATH="$HOME/.local/bin:$PATH"
 
-# new kitty window (not nested shells): rain + lightning on the >, then fetch (fastfetch + animated logo)
+# new kitty window (not nested shells): snow + hail over the >, then fetch (fastfetch + animated logo)
 [[ -n $KITTY_WINDOW_ID && $SHLVL == 1 && -t 1 ]] && { strike; fetch; }

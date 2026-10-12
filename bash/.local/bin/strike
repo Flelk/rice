@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Terminal intro, omarchy style: TerminalTextEffects' thunderstorm over a big block >,
-with one bolt aimed straight at it. Then the screen clears and the prompt starts at the
-bottom. Any key skips it. Run from .bashrc on new terminals.
+"""Terminal intro: a snowstorm over a small block > in the bottom-left corner.
 
-Needs python-terminaltexteffects (AUR); without it this quietly does nothing.
-The old hand-drawn version is strike-classic.
+Snow sways down and piles up on the > and along the bottom row, wind gusts blow everything
+sideways a couple of times, and hail cracks against the > (and knocks snow off it). At the
+end the > frosts over icy blue, then warms back to gray while all the snow melts away. Then
+the screen clears and the prompt starts at the bottom. Any key skips it. Run from .bashrc on new terminals.
+
+(Earlier versions: the TerminalTextEffects thunderstorm is in git history; the old
+hand-drawn rain is strike-classic.)
 """
 
+import math
 import os
 import random
 import select
@@ -15,160 +19,316 @@ import termios
 import time
 import tty
 
-try:
-    import terminaltexteffects as tte
-    from terminaltexteffects.effects import effect_thunderstorm as storm
-except ImportError:
-    sys.exit(0)
+CHEVRON = [   # drawn 2 columns off the window edge, last row on the bottom row
+    "█▄",
+    " ▀█▄",
+    " ▄█▀",
+    "█▀",
+]
+LEFT = 2
 
-CHEVRON = "\n".join("  " + line for line in [   # 2 columns off the window edge
-    "██▄",
-    " ▀██▄",
-    "   ▀██▄",
-    "   ▄██▀",
-    " ▄██▀",
-    "██▀",
-])
-TARGET_COLUMN = 6    # where the bolt lands: through the middle of the >
-STRIKE_AFTER = 20    # frames into the storm before it strikes (60 fps)
-STORM_SECONDS = 1    # storm keeps going at least this long, and until the strike is done
-FADE_TICKS = 3       # per fade step; tte's 12 means ~1.4s of fading before and after the storm
-OUTRO_FRAMES = 25    # frames after the storm (the > fading back in), then stop; tte would wait
-                     # for every raindrop to land, ~10s, but the screen gets cleared anyway
-FRAME_RATE = 100     # tte's 60 makes the whole thing ~4.5s; this runs every part faster
+# timeline, in seconds
+FADE_IN = 0.25       # the > fades in (dimmed: it's stormy)
+STORM = 3.0          # snow + hail keep coming until here
+FROST = 0.45         # then the > frosts over...
+WARM = 0.55          # ...and warms back to gray while the snow on it melts
+FPS = 60
 
-# colors: tte's blue bolt + orange glow, the > in the same grays as the bar
-LIGHTNING = "68A3E8"
-GLOW = "EF5411"
-SPARKS = "FF4D00"
-GRAYS = ("555555", "D0D0D0")
-BACKGROUND = "0E0E0E"   # kitty's background, for fades
+# snow drifts down slowly, sways, and piles up on the > and the bottom row; a third of it
+# is "far away": dimmer, slower, and it falls behind the > instead of landing on anything
+SNOW = ("*", "·", "+", ".")
+SNOW_NEAR = ("F2F6FA", "D8E0E8")
+SNOW_FAR = "6E7884"
+SNOW_RATE = 0.7              # flakes per second, per column of the window
+SNOW_SPEED = (0.22, 0.45)    # window heights per second
+PILE = "▁▂▃▄▅"               # snow piling up on top of the >, one step per level (a cap, not a tower)
+PILE_PER_FLAKE = 2           # levels each flake adds
+# hail drops fast, bounces once on the floor, and shatters on the >
+HAIL = ("o", "•", "°")
+HAIL_COLOR = "A9C8E8"        # icy blue
+HAIL_RATE = 0.12
+HAIL_SPEED = (1.1, 1.6)
+SPARKS = ("'", "`", ".", ",", "*")
+# the > is only 4 columns wide, so on top of the rates above, this many per second fall
+# right over it (otherwise ~2 flakes land on it per storm)
+AIMED = {"snow": 7, "hail": 1.5}
+# wind: a couple of gusts, each blows for about a second then dies down
+GUSTS = 2
+GUST_STRENGTH = (10, 18)     # columns per second, at its peak
 
-
-def speed_up(scene):
-    """Make every frame of a scene FADE_TICKS long (the frame index map has to be rebuilt)."""
-    frames = list(scene.frames)
-    scene.frames.clear()
-    scene.frame_index_map.clear()
-    scene.easing_total_steps = 0
-    for frame in frames:
-        frame.duration = FADE_TICKS
-        scene.frames.append(frame)
-        for _ in range(FADE_TICKS):
-            scene.frame_index_map[scene.easing_total_steps] = frame
-            scene.easing_total_steps += 1
+GRAYS = ("555555", "D0D0D0")   # the > from bottom to top, the same grays as the bar
+FROST_COLOR = "BFE6FF"
+BACKGROUND = "0E0E0E"          # kitty's background, for fades
 
 
-class AimedStorm(storm.ThunderstormIterator):
-    """tte's thunderstorm, but with exactly one strike, at a set time, onto the >."""
-
-    def __init__(self, effect):
-        super().__init__(effect)
-        self.storm_frames = 0
-        self.outro_frames = 0
-        self.struck = False
-        for char in self.terminal.get_characters():
-            for scene_id in ("fade", "unfade"):
-                speed_up(char.animation.query_scene(scene_id))
-
-    def setup_lightning_strike(self, branch_neighbor=None):
-        if branch_neighbor is not None:   # side branches: tte's own random ones
-            return super().setup_lightning_strike(branch_neighbor)
-        # same as tte's main bolt, except it zigzags toward TARGET_COLUMN: it moves at most
-        # one column per row, so every step keeps it close enough to still get there.
-        # it starts up and to the right, so it comes in diagonally instead of along the edge
-        canvas = self.terminal.canvas
-        row = canvas.top
-        reach = (row - canvas.bottom) // 2
-        column = min(canvas.right, TARGET_COLUMN + random.randint(reach // 3, reach))
-        while row >= canvas.bottom:
-            if not self.available_strike_chars:
-                self.build_strike_characters(20)
-            below = row - canvas.bottom
-            moves = [(s, d) for s, d in (("\\", 1), ("/", -1), ("|", 0))
-                     if below == 0 or abs(column - TARGET_COLUMN + d) <= below - 1]
-            symbol, step = random.choice(moves)
-            char = self.get_next_strike_char()
-            char.motion.set_coordinate(tte.Coord(column, row))
-            char.animation.set_appearance(symbol=symbol, colors=tte.ColorPair(fg=self.config.lightning_color))
-            self.pending_strike_chars.append(char)
-            row -= 1
-            column += step
-            if random.random() < self.strike_branch_chance:
-                self.strike_branch_chance -= 0.01
-                self.setup_lightning_strike(branch_neighbor=char)
-        self.strike_branch_chance = 0.05
-        self.setup_sparks_for_impact()
-
-    def __next__(self):
-        # tte's loop, with the random strikes swapped for the one aimed strike
-        if self.phase == "complete":
-            self.outro_frames += 1
-            if self.outro_frames > OUTRO_FRAMES:
-                raise StopIteration
-        if self.active_characters or self.phase != "complete":
-            if self.phase == "pre-storm":
-                self.pre_storm_text_fade()
-                self.phase = "waiting"
-            elif self.phase == "storm":
-                self.rain()
-                self.storm_frames += 1
-                if not self.struck and self.storm_frames >= STRIKE_AFTER:
-                    self.struck = self.strike_in_progress = True
-                    self.lightning_strike()
-                if self.strike_in_progress:
-                    self.step_lightning_strike()
-                for char in self.pending_glow_chars:
-                    self.active_characters.add(char)
-                self.pending_glow_chars.clear()
-                if (self.struck and not self.strike_in_progress
-                        and time.monotonic() - self.storm_start_time >= STORM_SECONDS):
-                    self.post_storm_text_fade_in()
-                    self.phase = "complete"
-            self.update()
-            return self.frame
-        raise StopIteration
+def rgb(hex_color):
+    return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
 
-class Strike(storm.Thunderstorm):
-    @property
-    def _iterator_cls(self):
-        return AimedStorm
+def mix(a, b, amount):
+    amount = min(1.0, max(0.0, amount))
+    return tuple(round(x + (y - x) * amount) for x, y in zip(a, b))
+
+
+BG = rgb(BACKGROUND)
+
+
+class Particle:
+    def __init__(self, x, y, vx, vy, symbol, color, kind, life=None):
+        self.x, self.y, self.vx, self.vy = x, y, vx, vy
+        self.symbol, self.color, self.kind = symbol, color, kind
+        self.life = self.age = life   # sparks only
+        self.bounced = False
+        self.sway = (random.uniform(0.6, 1.5), random.uniform(2, 4), random.uniform(0, 6.3))
+
+
+class Storm:
+    def __init__(self, cols, rows):
+        self.cols, self.rows = cols, rows
+        # the >: cell -> (symbol, final color); "▄" cells have an empty top half snow can fill
+        self.chevron = {}
+        top = rows - len(CHEVRON)
+        for r, line in enumerate(CHEVRON):
+            shade = mix(rgb(GRAYS[1]), rgb(GRAYS[0]), r / (len(CHEVRON) - 1))
+            for c, symbol in enumerate(line):
+                if symbol != " ":
+                    self.chevron[(top + r, LEFT + c)] = (symbol, shade)
+        self.capped = set()   # "▄" cells with snow in their top half
+        self.pile = {}        # cell -> snow level, 1..len(PILE)
+        self.flash = {}       # chevron cell -> time a hailstone hit it
+        self.particles = []
+        self.spawn = {"snow": 0.0, "hail": 0.0}
+        self.gusts = []
+        for n in range(GUSTS):
+            start = STORM * (n + random.uniform(0.15, 0.6)) / GUSTS
+            self.gusts.append((start, random.uniform(0.8, 1.1),
+                               random.choice((-1, 1)) * random.uniform(*GUST_STRENGTH)))
+
+    def prefill(self):
+        """Start with snow already filling the sky (but none on the > yet)."""
+        t = -3.0
+        while t < 0:
+            self.step(t, 1 / FPS)
+            t += 1 / FPS
+        self.pile.clear()
+        self.capped.clear()
+        self.flash.clear()
+        self.particles = [p for p in self.particles if p.kind != "spark"]
+
+    def wind(self, t):
+        return sum(s * math.sin(math.pi * (t - start) / d) ** 2
+                   for start, d, s in self.gusts if start <= t <= start + d)
+
+    def solid(self, cell):
+        return cell in self.chevron
+
+    def add_snow(self, cell, levels):
+        if cell[0] < 0:
+            return
+        self.pile[cell] = min(len(PILE), self.pile.get(cell, 0) + levels)
+
+    def shatter(self, p, cell, t):
+        """A hailstone hits the > (or the snow on it): sparks fly, and it knocks snow off."""
+        if cell in self.chevron:
+            self.flash[cell] = t
+        hit_snow = self.pile.get(cell) or cell in self.capped
+        if self.pile.get(cell):
+            self.pile[cell] -= 3
+            if self.pile[cell] <= 0:
+                del self.pile[cell]
+        self.capped.discard(cell)
+        color = SNOW_NEAR[0] if hit_snow else "FFFFFF"
+        for _ in range(random.randint(4, 7)):
+            self.particles.append(Particle(
+                p.x, cell[0] - 0.6, random.uniform(-12, 12), random.uniform(-14, -5),
+                random.choice(SPARKS), color, "spark", life=random.uniform(0.2, 0.4)))
+
+    def step(self, t, dt):
+        if t < STORM:
+            for kind, rate in (("snow", SNOW_RATE), ("hail", HAIL_RATE)):
+                self.spawn[kind] += rate * self.cols * dt
+                self.spawn["aimed " + kind] = self.spawn.get("aimed " + kind, 0) + AIMED[kind] * dt
+            for kind in list(self.spawn):
+                while self.spawn[kind] >= 1:
+                    self.spawn[kind] -= 1
+                    if kind.startswith("aimed"):
+                        kind = kind.split()[1]
+                        x = random.uniform(LEFT - 1, LEFT + 4.5)
+                        far = False
+                    else:
+                        x = random.uniform(-15, self.cols + 15)   # off the sides too, for the wind
+                        far = random.random() < 1 / 3
+                    if kind == "hail":
+                        self.particles.append(Particle(
+                            x, -1, 0, random.uniform(*HAIL_SPEED) * self.rows,
+                            random.choice(HAIL), HAIL_COLOR, "hail"))
+                    else:
+                        speed = random.uniform(*SNOW_SPEED) * self.rows * (0.7 if far else 1)
+                        self.particles.append(Particle(
+                            x, -1, 0, speed, random.choice(SNOW),
+                            SNOW_FAR if far else random.choice(SNOW_NEAR), "far" if far else "snow"))
+
+        wind = self.wind(t)
+        alive = []
+        for p in self.particles:
+            if p.kind == "spark":
+                p.age -= dt
+                p.vy += 40 * dt
+                p.x += p.vx * dt
+                p.y += p.vy * dt
+                if p.age > 0:
+                    alive.append(p)
+                continue
+            if p.kind == "hail":
+                vx = p.vx + wind * 0.25
+                if p.bounced:
+                    p.vy += 60 * dt
+            else:
+                amp, freq, phase = p.sway
+                vx = wind * (0.6 if p.kind == "far" else 1) + amp * freq * math.cos(freq * t + phase)
+            if self.move(p, vx * dt, p.vy * dt, t):
+                alive.append(p)
+        self.particles = alive
+
+    def move(self, p, dx, dy, t):
+        """Move in small steps so nothing skips a cell. False once the particle is gone."""
+        steps = max(1, math.ceil(max(abs(dx), abs(dy)) / 0.5))
+        for _ in range(steps):
+            old = (round(p.y), round(p.x))
+            p.x += dx / steps
+            p.y += dy / steps
+            cell = (round(p.y), round(p.x))
+            if p.y >= self.rows - 0.5:   # the floor
+                if p.kind == "hail" and not p.bounced:
+                    p.bounced = True
+                    p.y = self.rows - 0.6
+                    p.vy = -p.vy * 0.25
+                    p.vx = random.choice((-1, 1)) * random.uniform(3, 8)
+                    return True
+                floor = (self.rows - 1, round(p.x))
+                if p.kind == "snow":   # piles up along the bottom row, spreading a little to each side
+                    for cell, levels in ((floor, PILE_PER_FLAKE), ((floor[0], floor[1] - 1), 1),
+                                         ((floor[0], floor[1] + 1), 1)):
+                        if 0 <= cell[1] < self.cols and cell not in self.chevron:
+                            self.add_snow(cell, levels)
+                return False
+            if cell == old or p.kind == "far":
+                continue
+            if p.kind == "hail":
+                if self.solid(cell) or self.pile.get(cell):
+                    self.shatter(p, cell, t)
+                    return False
+                continue
+            # snow: fill the top half of a "▄" in the >, add to a pile, or land on top of something
+            if cell in self.chevron and self.chevron[cell][0] == "▄" and cell not in self.capped:
+                self.capped.add(cell)
+                return False
+            if self.pile.get(cell):
+                self.add_snow(cell, PILE_PER_FLAKE)
+                return False
+            if self.solid(cell):
+                if cell[0] > old[0]:   # came down onto it: settle right on top of it
+                    above = (cell[0] - 1, cell[1])
+                    if not self.solid(above):
+                        self.add_snow(above, PILE_PER_FLAKE)
+                    return False
+                p.x -= dx / steps     # blown sideways into it: just stop going sideways
+        return True
+
+    def frame(self, t):
+        """Every visible cell -> (symbol, fg, bg or None), for time t."""
+        # how the > looks: dim during the storm, then frost, then its real grays
+        def chevron_color(final):
+            dim = mix(BG, final, 0.5)
+            if t < FADE_IN:
+                return mix(BG, dim, t / FADE_IN)
+            if t < STORM:
+                return dim
+            if t < STORM + FROST:
+                return mix(dim, rgb(FROST_COLOR), (t - STORM) / FROST)
+            return mix(rgb(FROST_COLOR), final, (t - STORM - FROST) / WARM)
+
+        melt = max(0.0, (t - STORM - FROST) / WARM)   # settled snow and everything falling fades out
+        cells = {}
+
+        def put(cell, symbol, fg, bg=None):
+            if 0 <= cell[0] < self.rows and 0 <= cell[1] < self.cols:
+                cells[cell] = (symbol, fg, bg)
+
+        for layer in ("far", "chevron", "pile", "snow", "hail", "spark"):
+            if layer == "chevron":
+                for cell, (symbol, final) in self.chevron.items():
+                    color = chevron_color(final)
+                    if cell in self.flash:
+                        color = mix(rgb("FFFFFF"), color, (t - self.flash[cell]) / 0.15)
+                    if cell in self.capped:   # snow on top, the > underneath
+                        put(cell, "▀", mix(rgb(SNOW_NEAR[0]), BG, melt), color)
+                    else:
+                        put(cell, symbol, color)
+            elif layer == "pile":
+                for cell, level in self.pile.items():
+                    put(cell, PILE[level - 1], mix(rgb(SNOW_NEAR[0]), BG, melt))
+            else:
+                for p in self.particles:
+                    if p.kind == layer:
+                        color = rgb(p.color)
+                        if p.kind == "spark":
+                            color = mix(color, rgb(HAIL_COLOR), 1 - p.age / p.life * 2)
+                            color = mix(color, BG, 1 - p.age / p.life)
+                        put((round(p.y), round(p.x)), p.symbol, mix(color, BG, melt))
+        return cells
+
+
+def sgr(fg, bg):
+    code = "\x1b[38;2;%d;%d;%dm" % fg
+    return code + ("\x1b[48;2;%d;%d;%dm" % bg if bg else "\x1b[49m")
 
 
 def main():
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         return
-    effect = Strike(CHEVRON)
-    config = effect.effect_config
-    config.lightning_color = tte.Color(LIGHTNING)
-    config.glowing_text_color = tte.Color(GLOW)
-    config.spark_glow_color = tte.Color(SPARKS)
-    config.final_gradient_stops = tuple(tte.Color(c) for c in GRAYS)
-    term = effect.terminal_config
-    term.canvas_width = term.canvas_height = 0   # whole window
-    term.anchor_text = "sw"                       # > in the bottom-left corner
-    term.terminal_background_color = tte.Color(BACKGROUND)
-    term.frame_rate = FRAME_RATE
+    cols, rows = os.get_terminal_size()
+    storm = Storm(cols, rows)
+    storm.prefill()
 
     # any key skips: read keys without waiting for enter, without echoing them
     fd = sys.stdin.fileno()
     saved = termios.tcgetattr(fd)
     tty.setcbreak(fd)
+    out = sys.stdout
     try:
-        with effect.terminal_output() as out:
-            for frame in effect:
-                out.print(frame)
-                if select.select([fd], [], [], 0)[0]:
-                    os.read(fd, 64)
-                    break
+        out.write("\x1b[?25l\x1b[0m\x1b[2J")
+        start = last = time.monotonic()
+        shown = {}
+        while True:
+            now = time.monotonic()
+            t = now - start
+            if t > STORM + FROST + WARM:
+                break
+            storm.step(t, now - last)
+            last = now
+            cells = storm.frame(t)
+            # only redraw what changed since the last frame
+            draw = []
+            for cell in shown.keys() - cells.keys():
+                draw.append("\x1b[%d;%dH\x1b[0m " % (cell[0] + 1, cell[1] + 1))
+            for cell, look in cells.items():
+                if shown.get(cell) != look:
+                    symbol, fg, bg = look
+                    draw.append("\x1b[%d;%dH%s%s" % (cell[0] + 1, cell[1] + 1, sgr(fg, bg), symbol))
+            out.write("".join(draw))
+            out.flush()
+            shown = cells
+            if select.select([fd], [], [], max(0.0, 1 / FPS - (time.monotonic() - now)))[0]:
+                os.read(fd, 64)
+                break
     except KeyboardInterrupt:
         pass
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, saved)
         # clear, and leave the cursor on the bottom row for the prompt
-        sys.stdout.write(f"\x1b[0m\x1b[2J\x1b[{os.get_terminal_size().lines}H\x1b[?25h")
-        sys.stdout.flush()
+        out.write(f"\x1b[0m\x1b[2J\x1b[{rows}H\x1b[?25h")
+        out.flush()
 
 
 main()

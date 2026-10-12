@@ -13,10 +13,17 @@
 
 (defpoll clock :interval "1s" "date '+%a %d · %H:%M:%S'")
 
+;; laptop battery (hidden on the desktop: battery.sh skips mouse/keyboard batteries)
+(defpoll battery :interval "10s" :initial "{\"on\":false,\"pct\":0,\"state\":\"\",\"icon\":\"\",\"low\":false}"
+	"~/.config/eww/scripts/battery.sh")
+
 ;; floats like a window: 10px gap, 1px border, 4px corners (see .bar)
 (defwidget bar [monitor]
 	(centerbox :class "bar-box" :orientation "h"
-		(box :halign "start" :valign "center"
+		(box :halign "start" :valign "center" :space-evenly false
+			;; arch logo: opens the start panel
+			(button :class "arch" :onclick "~/.config/eww/scripts/start.sh toggle ${monitor}" "")
+			(box :class "vsep" :valign "center")
 			(workspaces))
 		(label :class "clock" :valign "center" :text clock)
 		(box :halign "end" :valign "center" :space-evenly false :spacing 4
@@ -26,6 +33,13 @@
 				:onrightclick "~/.config/eww/scripts/screenshot.sh screen"
 				"󰹑")
 			(button :class "power" :onclick "~/.config/eww/scripts/net.sh toggle ${monitor}" net_icon)
+			;; battery: click opens the power panel (where the power modes are)
+			(button :class "power battery ${battery.low ? 'low' : ''}" :visible {battery.on}
+				:tooltip {battery.state == "charging" ? "charging" : battery.state == "plugged" ? "plugged in" : "on battery"}
+				:onclick "~/.config/eww/scripts/panel.sh toggle ${monitor}"
+				(box :space-evenly false :spacing 4
+					(label :text {battery.icon})
+					(label :text "${battery.pct}%")))
 			(button :class "power" :onclick "~/.config/eww/scripts/panel.sh toggle ${monitor}" ""))))
 
 ;; WORKSPACES: the script decides which buttons show and how they look
@@ -44,8 +58,10 @@
 (defvar panel_stage 0)
 (deflisten volume :initial "0" "~/.config/eww/scripts/volume.sh")
 (defpoll brightness :interval "30s" "~/.config/eww/scripts/brightness.sh get")
-(defpoll vram :interval "2s"
-	"nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader,nounits | awk -F', ' '{printf \"%d\", $1 * 100 / $2}'")
+(defpoll vram :interval "2s"   ;; "" without an nvidia card: the vram tile hides itself
+	"command -v nvidia-smi >/dev/null && nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '$2 > 0 {printf \"%d\", $1 * 100 / $2}'")
+;; performance | balanced | power-saver, or "none" when power-profiles-daemon isn't installed
+(defpoll power_profile :interval "10s" :initial "none" "~/.config/eww/scripts/profile.sh get")
 (defpoll uptime :interval "60s" "uptime -p | sed -E 's/^up //; s/ weeks?,?/w/; s/ days?,?/d/; s/ hours?,?/h/; s/ minutes?/m/'")
 
 (defwindow panel
@@ -68,7 +84,7 @@
 	(box :class "panel-box" :orientation "v" :space-evenly false :spacing 14
 		;; profile
 		(stage :n 1 (box :space-evenly false :spacing 12
-			(box :class "pfp" :valign "center" (label :hexpand true :text "F"))
+			(box :class "pfp" :valign "center")
 			(box :orientation "v" :valign "center" :space-evenly false
 				(label :class "user" :halign "start" :text "flelk")
 				(label :class "dim" :halign "start" :text "up ${uptime}"))))
@@ -82,9 +98,15 @@
 		(box :class "sep")
 		;; stats
 		(stage :n 3 (box :orientation "v" :space-evenly false :spacing 6
+			;; power modes
+			(box :class "modes" :visible {power_profile != "none"} :spacing 4
+				(mode :name "power-saver" :icon "󰌪" :text "saver")
+				(mode :name "balanced"    :icon "󰾅" :text "balanced")
+				(mode :name "performance" :icon "󰓅" :text "boost"))
 			(stat :icon "󰻠" :name "cpu"  :value {round(EWW_CPU.avg, 0)})
 			(stat :icon "󰍛" :name "ram"  :value {round(EWW_RAM.used_mem_perc, 0)})
-			(stat :icon "󰢮" :name "vram" :value vram)))
+			(box :visible {vram != ""}
+				(stat :icon "󰢮" :name "vram" :value {vram == "" ? 0 : vram}))))
 		;; sliders
 		(stage :n 4 (box :orientation "v" :space-evenly false :spacing 14
 		(box :orientation "v" :space-evenly false :spacing 6
@@ -103,12 +125,148 @@
 		:onclick "~/.config/eww/scripts/panel.sh ${cmd}"
 		(label :text icon)))
 
+(defwidget mode [name icon text]
+	(button :class "tab mode ${power_profile == name ? 'active' : ''}"
+		:onclick "~/.config/eww/scripts/profile.sh set ${name}"
+		(box :orientation "v" :space-evenly false :spacing 2
+			(label :class "mode-icon" :text icon)
+			(label :text text))))
+
 (defwidget stat [icon name value]
 	(box :class "stat" :space-evenly false :spacing 12
 		(circular-progress :class "ring" :value value :thickness 3 :start-at 75 :clockwise true
 			(label :class "ring-icon" :text icon))
 		(label :class "stat-name" :valign "center" :text name)
 		(label :class "stat-value" :hexpand true :halign "end" :valign "center" :text "${value}%")))
+
+;; START PANEL (arch button): mirror of the power panel, hyprland slides it in from the left
+;; (layer rule on "eww-start"), then its sections follow one by one (start.sh steps start_stage 1..5).
+;; the rice drawer pops out to its right. closes when the mouse leaves the hover zone
+(defvar start_open false)
+(defvar start_stage 0)
+(defvar start_rice false)
+(defvar start_query "")
+(defvar start_results "[]")   ;; search hits, filled by start.sh search
+(defvar start_pinned "[]")    ;; rows of 4, "+" tile last (apps.sh pinned)
+(deflisten media :initial "{\"on\":false,\"playing\":false,\"title\":\"\",\"artist\":\"\",\"art\":\"\"}"
+	"~/.config/eww/scripts/media.sh")
+(defpoll kernel :interval "1h" "uname -r")
+(defpoll pkgs :interval "10m" "pacman -Qq | wc -l")
+(defpoll start_updates :interval "30m" :initial "0" "(checkupdates; yay -Qua) 2>/dev/null | wc -l")
+
+(defwindow start
+	:monitor 0
+	:geometry (geometry :x "0px" :y "0px" :anchor "top left")
+	:stacking "overlay"
+	:exclusive false
+	:focusable true
+	:namespace "eww-start"
+	(eventbox :onhoverlost "~/.config/eww/scripts/start.sh close"
+		(box :class "start-zone" :space-evenly false
+			(start)
+			(revealer :valign "start" :transition "slideright" :duration "250ms" :reveal start_rice
+				(rice)))))
+
+;; like stage, but slides in from the left
+(defwidget lstage [n]
+	(revealer :halign "start" :transition "slideright" :duration "350ms" :reveal {start_stage >= n}
+		(revealer :transition "crossfade" :duration "350ms" :reveal {start_stage >= n}
+			(box :class "stage" (children)))))
+
+(defwidget start []
+	(box :class "panel-box" :orientation "v" :space-evenly false :spacing 14
+		;; system
+		(lstage :n 1 (box :space-evenly false :spacing 12
+			(box :class "pfp" :valign "center")
+			(box :orientation "v" :valign "center" :space-evenly false
+				(label :class "user" :halign "start" :text "arch linux")
+				(label :class "dim" :halign "start" :text "${kernel} · ${pkgs} pkgs"))))
+		;; search: typing swaps the pinned grid for results, enter opens the top one
+		(lstage :n 2 (box :class "search" :space-evenly false :spacing 10
+			(label :class "dim" :text "")
+			(input :hexpand true
+				:onchange "~/.config/eww/scripts/start.sh search '{}'"
+				:onaccept "~/.config/eww/scripts/start.sh first")))
+		;; pinned apps (right click unpins, + pins one) / search results
+		(lstage :n 3 (box :orientation "v" :space-evenly false :spacing 4
+			(label :class "section" :halign "start" :text {start_query == "" ? "pinned" : "results"})
+			(box :orientation "v" :space-evenly false :spacing 4 :visible {start_query == ""}
+				(for row in start_pinned
+					(box :space-evenly false :spacing 4
+						(for a in row (app-tile :app a)))))
+			(box :orientation "v" :space-evenly false :spacing 2 :visible {start_query != ""}
+				(for a in start_results
+					(button :class "net-row" :onclick "~/.config/eww/scripts/start.sh launch ${a.id}"
+						(box :space-evenly false :spacing 10
+							(image :path {a.icon} :image-width 20 :image-height 20)
+							(label :halign "start" :hexpand true :limit-width 26 :text {a.name}))))
+				(label :class "net-empty dim" :halign "start" :visible {arraylength(start_results) == 0}
+					:text "no apps match"))))
+		(box :class "sep")
+		;; now playing (playerctl)
+		(lstage :n 4 (box :class "media" :space-evenly false :spacing 12
+			(box :class "art" :valign "center"
+				:style {media.art == "" ? "" : "background-image: url('${media.art}');"}
+				(label :visible {media.art == ""} :text ""))
+			(box :orientation "v" :valign "center" :hexpand true :space-evenly false :spacing 2
+				(label :halign "start" :limit-width 22 :text {media.on ? media.title : "nothing playing"})
+				(label :class "dim" :halign "start" :limit-width 22 :text {media.artist})
+				(box :class "media-controls" :halign "start" :space-evenly false :spacing 16
+					(button :onclick "playerctl previous" "")
+					(button :onclick "playerctl play-pause" {media.playing ? "" : ""})
+					(button :onclick "playerctl next" "")))))
+		;; updates, disk, rice drawer
+		(lstage :n 5 (box :spacing 4
+			(sys-tile :icon "" :cmd "update"
+				:text {start_updates == "0" ? "up to date" : "${start_updates} updates"})
+			(sys-tile :icon "" :text {round(EWW_DISK["/"].used_perc, 0) + "% disk"})
+			(sys-tile :icon "" :text "rice" :cmd "rice" :on start_rice)))))
+
+;; pinned app, or the "+" tile at the end
+(defwidget app-tile [app]
+	(button :class "tile ${app.id == '+' ? 'add' : ''}"
+		:tooltip {app.id == "+" ? "pin an app" : "${app.name} (right click: unpin)"}
+		:onclick {app.id == "+" ? "~/.config/eww/scripts/start.sh pin" : "~/.config/eww/scripts/start.sh launch ${app.id}"}
+		:onrightclick {app.id == "+" ? "" : "~/.config/eww/scripts/start.sh unpin ${app.id}"}
+		(box :orientation "v" :space-evenly false :spacing 6 :valign "center"
+			(label :class "tile-plus" :visible {app.id == "+"} :text "+")
+			(image :visible {app.id != "+"} :path {app.icon == "" ? "/usr/share/icons/Adwaita/scalable/mimetypes/application-x-executable.svg" : app.icon}
+				:image-width 30 :image-height 30)
+			(label :class "tile-name" :limit-width 8 :text {app.name}))))
+
+;; no cmd = just shows info
+(defwidget sys-tile [icon text ?cmd ?on]
+	(button :class "action sys-tile ${on == true ? 'on' : ''} ${cmd == '' ? 'info' : ''}"
+		:onclick {cmd == "" ? "" : "~/.config/eww/scripts/start.sh ${cmd}"}
+		(box :orientation "v" :space-evenly false :spacing 4
+			(label :text icon)
+			(label :class "sys-text" :text text))))
+
+;; RICE DRAWER: reloads + config shortcuts (opened in code)
+(defwidget rice []
+	(box :class "panel-box rice-box" :orientation "v" :space-evenly false :spacing 10
+		(label :class "user" :halign "start" :text "rice")
+		(box :class "sep")
+		(label :class "section" :halign "start" :text "reload")
+		(box :spacing 4
+			(sys-tile :icon "" :text "bar"      :cmd "reload eww")
+			(sys-tile :icon "" :text "hyprland" :cmd "reload hypr")
+			(sys-tile :icon "" :text "mako"     :cmd "reload mako"))
+		(label :class "section" :halign "start" :text "edit")
+		(box :orientation "v" :space-evenly false :spacing 2
+			(rice-row :icon "" :text "hyprland"      :cmd "edit hypr")
+			(rice-row :icon "" :text "bar & panels"  :cmd "edit eww")
+			(rice-row :icon "" :text "kitty"         :cmd "edit kitty")
+			(rice-row :icon "" :text "launcher"      :cmd "edit fuzzel")
+			(rice-row :icon "" :text "notifications" :cmd "edit mako")
+			(rice-row :icon "" :text "fetch"         :cmd "edit fastfetch")
+			(rice-row :icon "" :text "all dotfiles"  :cmd "edit dotfiles"))))
+
+(defwidget rice-row [icon text cmd]
+	(button :class "net-row" :onclick "~/.config/eww/scripts/start.sh ${cmd}"
+		(box :space-evenly false :spacing 10
+			(label :class "net-row-icon" :text icon)
+			(label :halign "start" :hexpand true :text text))))
 
 ;; NETWORK PANEL: same slide-in + hover-to-close as the power panel (shares its "eww-panel" namespace).
 ;; both tabs: known (saved wifi / paired bluetooth) first, then unknown ones nearby.

@@ -181,6 +181,13 @@ hl.layer_rule({
     animation = "slide right",
 })
 
+-- eww start panel (arch button): same, from the left
+hl.layer_rule({
+    name      = "eww-start-slide",
+    match     = { namespace = "^eww-start$" },
+    animation = "slide left",
+})
+
 hl.window_rule({
     name  = "move-hyprland-run",
     match = { class = "hyprland-run" },

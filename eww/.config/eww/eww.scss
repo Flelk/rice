@@ -25,6 +25,26 @@ $hover: #999999;
 	padding: 0 8px;
 }
 
+// arch logo, left of the workspaces
+.arch {
+	padding: 0 6px 0 4px;
+	label {
+		font-size: 15px;
+	}
+}
+
+.arch:hover {
+	color: $hover;
+}
+
+// vertical line between the arch logo and the workspaces
+.vsep {
+	min-width: 1px;
+	min-height: 16px;
+	margin: 0 6px;
+	background-color: #2a2a2a;
+}
+
 // workspaces: empty = dim, has windows = gray, focused = white
 .ws {
 	padding: 0 6px;
@@ -86,9 +106,10 @@ $hover: #999999;
 	border-radius: 50%;
 	border: 1px solid #2a2a2a;
 	background-color: #1a1a1a;
-	label {
-		font-size: 20px;
-	}
+	// your icon (copied from ~/Pictures/pfp)
+	background-image: url("/home/flelk/.config/eww/pfp.jpg");
+	background-size: cover;
+	background-position: center;
 }
 
 .action {
@@ -235,4 +256,113 @@ $hover: #999999;
 	background-color: #2a2a2a;
 	border-radius: 2px;
 	min-width: 3px;
+}
+
+// start panel (arch button): mirror of the power panel, hover zone on the right/bottom instead
+.start-zone {
+	padding: 10px 70px 100px 10px;
+}
+
+.search {
+	background-color: #141414;
+	border: 1px solid #1f1f1f;
+	border-radius: 4px;
+	padding: 8px 12px;
+	caret-color: $fg;
+}
+
+// pinned apps: 4 per row, "+" tile (dashed) at the end
+.tile {
+	min-width: 56px;
+	min-height: 64px;
+	border-radius: 4px;
+}
+
+.tile:hover {
+	background-color: #1a1a1a;
+}
+
+.tile-name {
+	font-size: 10px;
+	color: #888888;
+}
+
+.tile.add {
+	border: 1px dashed #2a2a2a;
+	color: $dim;
+}
+
+.tile.add:hover {
+	border-color: $dim;
+	color: $fg;
+}
+
+.tile-plus {
+	font-size: 20px;
+}
+
+// now playing
+.media {
+	background-color: #141414;
+	border: 1px solid #1f1f1f;
+	border-radius: 4px;
+	padding: 8px;
+}
+
+.art {
+	min-width: 56px;
+	min-height: 56px;
+	border-radius: 4px;
+	background-color: #1a1a1a;
+	background-size: cover;
+	background-position: center;
+	color: $dim;
+	label {
+		font-size: 18px;
+	}
+}
+
+.media-controls button {
+	color: $dim;
+	margin-top: 4px;
+}
+
+.media-controls button:hover {
+	color: $fg;
+}
+
+// updates / disk / rice tiles (also the reload buttons in the rice drawer)
+// (.sys-tile in front so it beats ".action label")
+.sys-tile .sys-text {
+	font-size: 11px;
+}
+
+.sys-tile.on {
+	color: $fg;
+	background-color: #1a1a1a;
+}
+
+.sys-tile.info:hover {
+	color: $dim;
+	background-color: transparent;
+}
+
+// rice drawer, right of the start panel
+.rice-box {
+	margin-left: 8px;
+	min-width: 200px;
+}
+
+// laptop battery in the bar
+.battery.low {
+	color: #d06060;
+}
+
+// power modes (power panel): same look as the network panel's tabs
+.mode {
+	padding: 8px 0;
+}
+
+.mode-icon {
+	font-size: 16px;
 }

@@ -20,3 +20,15 @@ ttf-jetbrains-mono-nerd
 discord
 grim
 fastfetch
+slurp
+wl-clipboard
+libnotify
+mako
+thunar
+networkmanager
+bluez
+bluez-utils
+gnome-keyring
+pacman-contrib
+code
+power-profiles-daemon
