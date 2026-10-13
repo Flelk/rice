@@ -488,3 +488,188 @@
 	(box :space-evenly false
 		(label :class "user" :halign "start" :hexpand true :limit-width 20 :text title)
 		(button :class "notes-add" :tooltip tip :onclick "~/.config/eww/scripts/notes.sh ${cmd}" "󰐕")))
+
+;; DASHBOARD (SUPER + TAB): full screen overlay on the focused monitor, hyprland fades it in
+;; (layer rule on "eww-dash"), then its columns follow one by one (dash.sh steps dash_stage 1..4).
+;; ESC or SUPER + TAB closes it (dash submap). everything below only polls while it's open
+(defvar dash_open false)
+(defvar dash_stage 0)
+(defpoll dash_clock :interval "1s" :run-while dash_open
+	:initial "{\"hm\":\"00:00\",\"s\":\"00\",\"date\":\"\"}"
+	"date '+{\"hm\":\"%H:%M\",\"s\":\"%S\",\"date\":\"%A, %B %-d\"}' | tr A-Z a-z")
+(defpoll weather :interval "10m" :run-while dash_open :initial "{\"ok\":false,\"hours\":[]}"
+	"~/.config/eww/scripts/weather.sh")
+(defpoll storage :interval "60s" :run-while dash_open
+	:initial "{\"free\":\"\",\"used\":\"\",\"total\":\"\",\"pct\":0,\"dirs\":[]}"
+	"~/.config/eww/scripts/storage.sh")
+(defpoll month :interval "10m" :run-while dash_open
+	:initial "{\"month\":\"\",\"weeks\":[],\"greeting\":\"hey\",\"winter\":\"\"}"
+	"~/.config/eww/scripts/month.py")
+(defpoll media_pos :interval "1s" :run-while dash_open :initial "{\"pct\":0,\"pos\":\"0:00\",\"len\":\"0:00\"}"
+	"~/.config/eww/scripts/media.sh pos")
+;; cpu package temp (intel coretemp / amd k10temp), 0 if neither
+(defpoll cpu_temp :interval "3s" :run-while dash_open :initial "0"
+	"for h in /sys/class/hwmon/hwmon*; do case $(cat $h/name) in coretemp|k10temp|zenpower) echo $(( $(cat $h/temp1_input) / 1000 )); exit;; esac; done; echo 0")
+
+(defwindow dash
+	:monitor 0
+	:geometry (geometry :x "0px" :y "0px" :width "100%" :height "100%" :anchor "center")
+	:stacking "overlay"
+	:exclusive false
+	:namespace "eww-dash"
+	(box :class "dash-backdrop"
+		(box :orientation "v" :space-evenly false :valign "center" :halign "center" :hexpand true :spacing 14
+			(box :class "dash" :space-evenly false :spacing 14
+				;; you + system
+				(dstage :n 1 (box :orientation "v" :space-evenly false :spacing 14 :class "dash-col-s"
+					(dash-profile)
+					(dash-stats)))
+				;; time + weather
+				(dstage :n 2 (box :orientation "v" :space-evenly false :spacing 14 :class "dash-col-m"
+					(dash-clock)
+					(dash-weather)))
+				;; music + calendar
+				(dstage :n 3 (box :orientation "v" :space-evenly false :spacing 14 :class "dash-col-l"
+					(dash-media)
+					(dash-calendar)))
+				;; storage + winter
+				(dstage :n 4 (box :orientation "v" :space-evenly false :spacing 14 :class "dash-col-s"
+					(dash-storage)
+					(dash-winter))))
+			(label :class "dash-hint" :text "esc to close"))))
+
+;; one column, fades in once dash_stage reaches n (crossfade keeps its size, so nothing jumps)
+(defwidget dstage [n]
+	(revealer :transition "crossfade" :duration "300ms" :reveal {dash_stage >= n}
+		(children)))
+
+(defwidget dash-profile []
+	(box :class "dash-tile" :orientation "v" :space-evenly false :spacing 6
+		(box :class "pfp big" :halign "center")
+		(label :class "dim dash-greet" :text "${month.greeting},")
+		(label :class "dash-name" :text "flelk")
+		(label :class "dim" :text "up ${uptime}")))
+
+(defwidget dash-stats []
+	(box :class "dash-tile" :orientation "v" :vexpand true :valign "fill" :space-evenly true :spacing 14
+		(dash-meter :icon "󰻠" :name "cpu"  :value {round(EWW_CPU.avg, 0)} :text "${round(EWW_CPU.avg, 0)}%")
+		(dash-meter :icon "󰍛" :name "ram"  :value {round(EWW_RAM.used_mem_perc, 0)}
+			:text "${round(EWW_RAM.used_mem / 1073741824, 1)}g")
+		(dash-meter :icon "󰔏" :name "temp" :value cpu_temp :text "${cpu_temp}°c")
+		(box :visible {vram != ""}
+			(dash-meter :icon "󰢮" :name "vram" :value {vram == "" ? 0 : vram} :text "${vram}%"))))
+
+(defwidget dash-meter [icon name value text]
+	(box :space-evenly false :spacing 14 :valign "center"
+		(label :class "dash-meter-icon" :text icon)
+		(box :orientation "v" :hexpand true :space-evenly false :spacing 6
+			(box (label :class "dim" :halign "start" :text name)
+				(label :halign "end" :text text))
+			(progress :class "dash-meter" :value value))))
+
+(defwidget dash-clock []
+	(box :class "dash-tile" :orientation "v" :space-evenly false :spacing 2
+		(box :space-evenly false :spacing 8
+			(label :class "dash-time" :text {dash_clock.hm})
+			(label :class "dim dash-sec" :valign "end" :text {dash_clock.s}))
+		(label :class "dim" :halign "start" :text {dash_clock.date})))
+
+(defwidget dash-weather []
+	(box :class "dash-tile" :orientation "v" :vexpand true :space-evenly false :spacing 14
+		(label :class "dim" :halign "start" :visible {!weather.ok} :text "weather offline, trying again soon")
+		(box :orientation "v" :space-evenly false :spacing 14 :visible {weather.ok}
+			;; now
+			(box :space-evenly false :spacing 18
+				(label :class "dash-wicon" :text {weather.icon})
+				(box :orientation "v" :valign "center" :hexpand true :space-evenly false
+					(label :class "dash-temp" :halign "start" :text "${weather.temp}°")
+					(label :class "dim" :halign "start" :text "feels ${weather.feels}° · ${weather.hi}° / ${weather.lo}°")))
+			(box :orientation "v" :space-evenly false :spacing 2
+				(label :class "dash-desc" :halign "start" :text {weather.desc})
+				;; "stargazing" in the quip is a link (clear nights)
+				(box :space-evenly false :halign "start"
+					(label :class "dim" :limit-width 40 :text {replace(weather.quip, "stargazing", "")})
+					(button :class "dash-link" :visible {matches(weather.quip, "stargazing")}
+						:onclick "~/.config/eww/scripts/dash.sh sky" "stargazing")))
+			;; details
+			(box :class "dash-chips" :spacing 6
+				(dash-chip :icon "󰖗" :text "${weather.rain}%")
+				(dash-chip :icon "󰖎" :text "${weather.humidity}%")
+				(dash-chip :icon "󰖝" :text {weather.wind}))
+			(box :class "sep")
+			;; next hours
+			(box :spacing 4
+				(for h in {weather.hours}
+					(box :orientation "v" :space-evenly false :spacing 6
+						(label :class "dim dash-small" :text {h.time})
+						(label :class "dash-hicon" :text {h.icon})
+						(label :text "${h.temp}°"))))
+			(box :class "sep")
+			(box :space-evenly false :spacing 14
+				(label :class "dim" :text "󰖜 ${weather.sunrise}")
+				(label :class "dim" :text "󰖛 ${weather.sunset}")
+				(box :hexpand true)
+				(button :class "dash-link" :tooltip "${weather.moon} moon · drag around tonight's sky"
+					:onclick "~/.config/eww/scripts/dash.sh sky" "󰽥 stargazing")))))
+
+(defwidget dash-chip [icon text]
+	(box :class "dash-chip"
+		(box :space-evenly false :spacing 6 :halign "center"
+			(label :class "dim" :text icon)
+			(label :text text))))
+
+(defwidget dash-media []
+	(box :class "dash-tile" :space-evenly false :spacing 18
+		(box :class "art dash-art" :valign "center"
+			:style {media.art == "" ? "" : "background-image: url('${media.art}');"}
+			(label :visible {media.art == ""} :text "󰝚"))
+		(box :orientation "v" :valign "center" :hexpand true :space-evenly false :spacing 4
+			(label :class "dash-title" :halign "start" :limit-width 24 :text {media.on ? media.title : "nothing playing"})
+			(label :class "dim" :halign "start" :limit-width 28 :text {media.on ? media.artist : "play something in spotify"})
+			(box :class "media-controls dash-controls" :halign "start" :space-evenly false :spacing 22
+				(button :onclick "playerctl previous" "󰒮")
+				(button :class "dash-play" :onclick "playerctl play-pause" {media.playing ? "󰏤" : "󰐊"})
+				(button :onclick "playerctl next" "󰒭"))
+			(box :orientation "v" :space-evenly false :spacing 4 :visible {media.on}
+				(progress :class "dash-meter" :value {media_pos.pct})
+				(box (label :class "dim dash-small" :halign "start" :text {media_pos.pos})
+					(label :class "dim dash-small" :halign "end" :text {media_pos.len}))))))
+
+(defwidget dash-calendar []
+	(box :class "dash-tile" :orientation "v" :vexpand true :space-evenly false :spacing 8
+		(label :class "dash-desc" :halign "start" :text {month.month})
+		(box :class "cal-row"
+			(label :class "dim dash-small" :text "s") (label :class "dim dash-small" :text "m")
+			(label :class "dim dash-small" :text "t") (label :class "dim dash-small" :text "w")
+			(label :class "dim dash-small" :text "t") (label :class "dim dash-small" :text "f")
+			(label :class "dim dash-small" :text "s"))
+		(for week in {month.weeks}
+			(box :class "cal-row"
+				(for d in week
+					(label :class "cal-day ${d.c}" :text {d.d}))))))
+
+(defwidget dash-storage []
+	(box :class "dash-tile" :orientation "v" :vexpand true :space-evenly false :spacing 12
+		;; disk: like the reference, a big free space tile on top
+		(box :class "dash-disk" :orientation "v" :space-evenly false :spacing 10
+			(box :space-evenly false :spacing 14
+				(label :class "dash-disk-icon" :text "󰋊")
+				(box :class "vsep" :valign "center")
+				(box :orientation "v" :valign "center" :space-evenly false
+					(label :class "dash-temp" :halign "start" :text {storage.free})
+					(label :class "dim" :halign "start" :text "free")))
+			(progress :class "dash-meter" :value {storage.pct})
+			(label :class "dim dash-small" :halign "start" :text "${storage.used} of ${storage.total} used"))
+		;; folders: click opens it in thunar
+		(box :orientation "v" :space-evenly false :spacing 2
+			(for d in {storage.dirs}
+				(button :class "net-row" :onclick "~/.config/eww/scripts/dash.sh open '${d.path}'"
+					(box :space-evenly false :spacing 12
+						(label :class "net-row-icon" :text {d.icon})
+						(label :halign "start" :hexpand true :text {d.name})
+						(label :class "dim" :text {d.size})))))))
+
+(defwidget dash-winter []
+	(box :class "dash-tile" :space-evenly false :spacing 14
+		(label :class "dash-meter-icon" :text "󰜗")
+		(label :halign "start" :text {month.winter})))

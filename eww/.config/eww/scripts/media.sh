@@ -2,6 +2,14 @@
 # Now playing for the start panel, one JSON line per change:
 #   {"on":true,"playing":true,"title":"...","artist":"...","art":"/path/to/cover.jpg"}
 # "on" is false when no player is running. Cover art is downloaded once into ~/.cache/eww/art.
+#   media.sh pos   track position for the dashboard: {"pct":42,"pos":"1:23","len":"3:45"}
+if [ "$1" = pos ]; then
+	read -r p l < <(playerctl metadata --format '{{position}} {{mpris:length}}' 2>/dev/null)
+	p=$(( ${p:-0} / 1000000 )); l=$(( ${l:-0} / 1000000 ))
+	pct=0; (( l > 0 )) && pct=$(( p * 100 / l ))
+	printf '{"pct":%d,"pos":"%d:%02d","len":"%d:%02d"}\n' "$pct" $((p / 60)) $((p % 60)) $((l / 60)) $((l % 60))
+	exit 0
+fi
 ART="$HOME/.cache/eww/art"
 mkdir -p "$ART"
 

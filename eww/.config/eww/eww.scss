@@ -467,3 +467,178 @@ $hover: #999999;
 	background-color: #2a2a2a;
 	margin: 4px 0;
 }
+
+// Dashboard (SUPER + TAB): dimmed backdrop, tiles share the panels' look
+.dash-backdrop {
+	background-color: rgba(0, 0, 0, 0.55);
+}
+
+.dash-tile {
+	background-color: $bg;
+	color: $fg;
+	border: 1px solid #2a2a2a;
+	border-radius: 4px;
+	padding: 20px;
+}
+
+// Column Widths:
+.dash-col-s {
+	min-width: 270px;
+}
+
+.dash-col-m {
+	min-width: 360px;
+}
+
+.dash-col-l {
+	min-width: 400px;
+}
+
+.dash-hint {
+	color: #3a3a3a;
+	font-size: 11px;
+}
+
+.dash-small {
+	font-size: 11px;
+}
+
+// Profile:
+.pfp.big {
+	min-width: 110px;
+	min-height: 110px;
+	margin: 10px 0 12px 0;
+}
+
+.dash-greet {
+	font-size: 12px;
+}
+
+.dash-name {
+	font-size: 22px;
+	font-weight: bold;
+}
+
+// Stat Bars: icon + thick bar (also track position + disk)
+.dash-meter-icon {
+	color: #888888;
+	font-size: 22px;
+	min-width: 28px;
+}
+
+.dash-meter trough {
+	background-color: #1f1f1f;
+	border-radius: 3px;
+	min-height: 6px;
+}
+
+.dash-meter progress {
+	background-color: $fg;
+	border-radius: 3px;
+	min-height: 6px;
+}
+
+// Clock:
+.dash-time {
+	font-size: 64px;
+	font-weight: bold;
+}
+
+.dash-sec {
+	font-size: 20px;
+	margin-bottom: 12px;
+}
+
+// Weather:
+.dash-wicon {
+	font-size: 72px;
+	min-width: 84px;
+}
+
+.dash-temp {
+	font-size: 36px;
+	font-weight: bold;
+}
+
+.dash-desc {
+	font-size: 17px;
+}
+
+.dash-chip {
+	background-color: #141414;
+	border: 1px solid #1f1f1f;
+	border-radius: 4px;
+	padding: 6px 0;
+}
+
+.dash-hicon {
+	font-size: 22px;
+}
+
+// Media:
+.dash-art {
+	min-width: 150px;
+	min-height: 150px;
+	label {
+		font-size: 40px;
+	}
+}
+
+.dash-title {
+	font-size: 17px;
+}
+
+.dash-controls {
+	margin: 10px 0 6px 0;
+	label {
+		font-size: 20px;
+	}
+}
+
+.dash-play {
+	color: $fg;
+}
+
+// Calendar: today inverted, weekends dim, other months dimmer
+.cal-row label {
+	min-height: 30px;
+}
+
+.cal-day.weekend {
+	color: #888888;
+}
+
+.cal-day.pad {
+	color: #2a2a2a;
+}
+
+.cal-day.today {
+	background-color: $fg;
+	color: $bg;
+	border-radius: 4px;
+	font-weight: bold;
+}
+
+// Storage: free space tile on top, like the reference
+.dash-disk {
+	background-color: #141414;
+	border: 1px solid #1f1f1f;
+	border-radius: 4px;
+	padding: 16px;
+}
+
+.dash-disk-icon {
+	color: #888888;
+	font-size: 40px;
+}
+
+// Stargazing Link: weather tile
+.dash-link {
+	color: $fg;
+	border-bottom: 1px solid $dim;
+}
+
+.dash-link:hover {
+	color: $hover;
+	border-bottom-color: $hover;
+}

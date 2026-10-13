@@ -35,3 +35,6 @@ power-profiles-daemon
 obsidian
 hypridle
 python
+python-gobject
+python-cairo
+python-numpy

@@ -12,7 +12,8 @@ dotfiles/
 │       ├── hyprlock.conf      # lock screen
 │       └── xdph.conf          # screen-share portal → fuzzel picker
 ├── eww/                       # stow package → ~/.config/eww
-│   └── .config/eww/           # bar + power panel (eww.yuck, eww.scss, scripts/)
+│   └── .config/eww/           # bar, panels + SUPER+TAB dashboard (eww.yuck, eww.scss, scripts/)
+│                              # stargazing: scripts/sky.py, live sky over the dashboard
 │                              # pinned.default: first-run pins (pinned + pfp.jpg stay local)
 ├── fuzzel/                    # stow package → ~/.config/fuzzel
 │   └── .config/fuzzel/        # launcher theme

@@ -24,6 +24,7 @@ hl.bind(mainMod .. " + SPACE",  hl.dsp.exec_cmd(menu))
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("~/.config/eww/scripts/screenshot.sh"))
 hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + Z",      hl.dsp.exec_cmd("~/.config/hypr/screensaver/screensaver.sh start"))
+hl.bind(mainMod .. " + TAB",    hl.dsp.exec_cmd("~/.config/eww/scripts/dash.sh toggle"))
 
 -- Inactive Opacity: SUPER + = / -
 local function inactiveOpacity(step)
@@ -78,6 +79,16 @@ hl.define_submap("power-confirm", function()
     hl.bind("RETURN",   hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh confirm"))
     hl.bind("KP_Enter", hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh confirm"))
     hl.bind("ESCAPE",   hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh disarm"))
+end)
+
+-- Dashboard Open: ESC backs out of stargazing / closes, SUPER + TAB closes
+hl.define_submap("dash", function()
+    hl.bind("ESCAPE",          hl.dsp.exec_cmd("~/.config/eww/scripts/dash.sh esc"))
+    hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("~/.config/eww/scripts/dash.sh close"))
+    hl.bind("XF86AudioNext",   hl.dsp.exec_cmd("playerctl next"))
+    hl.bind("XF86AudioPlay",   hl.dsp.exec_cmd("playerctl play-pause"))
+    hl.bind("XF86AudioPause",  hl.dsp.exec_cmd("playerctl play-pause"))
+    hl.bind("XF86AudioPrev",   hl.dsp.exec_cmd("playerctl previous"))
 end)
 -----------------------
 ---- LOOK AND FEEL ----
@@ -215,6 +226,22 @@ hl.layer_rule({
     name      = "eww-start-slide",
     match     = { namespace = "^eww-start$" },
     animation = "slide left",
+})
+
+-- Eww Dashboard: Fade + Blur Behind
+hl.layer_rule({
+    name         = "eww-dash-fade",
+    match        = { namespace = "^eww-dash$" },
+    animation    = "fade",
+    blur         = true,
+    ignore_alpha = 0.3,
+})
+
+-- Stargazing (sky.py over the dashboard):
+hl.layer_rule({
+    name      = "eww-sky-fade",
+    match     = { namespace = "^eww-sky$" },
+    animation = "fade",
 })
 
 -- Joke Screensaver: Fullscreen + Slide
