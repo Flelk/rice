@@ -25,8 +25,12 @@ dotfiles/
 │   └── .local/bin/fetch       # fastfetch with the animated logo (kitty)
 ├── kitty/                     # stow package → ~/.config/kitty
 ├── mako/                      # stow package → ~/.config/mako (notifications)
+├── theme/                     # stow package → ~/.config/theme, ~/.local/bin
+│   ├── .config/theme/*.sh     # palettes: mono, catppuccin, everforest, tokyonight
+│   └── .local/bin/theme       # renders colors into eww/kitty/fuzzel/mako/hypr + swaps wallpaper
+│                              # picker: SUPER+T, eww/scripts/themes.sh (theme tabs + wallpaper thumbs)
 ├── nano/                      # stow package → ~/.config/nano
-├── wallpapers/                # submodule
+├── wallpapers/                # submodule, one folder per theme
 ├── packages.txt               # pacman packages
 ├── aur.txt                    # AUR packages
 ├── system/                    # copied, not stowed
@@ -43,7 +47,7 @@ git clone --recurse-submodules git@github.com:Flelk/rice.git ~/dotfiles
 sudo pacman -S --needed - < ~/dotfiles/packages.txt
 git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin && (cd /tmp/yay-bin && makepkg -si)
 yay -S --needed - < ~/dotfiles/aur.txt
-cd ~/dotfiles && stow --no-folding bash hypr eww fuzzel fastfetch launcher kitty mako nano
+cd ~/dotfiles && stow --no-folding bash hypr eww fuzzel fastfetch launcher kitty mako nano theme
 cp -n ~/dotfiles/system/mimeapps.list ~/.config/mimeapps.list
 ```
 For the profile picture in the bar, drop a square image at `~/.config/eww/pfp.jpg` (not in git).

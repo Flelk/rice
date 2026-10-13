@@ -1,9 +1,6 @@
 // == colors ==
-$bg: #0e0e0e;
-$fg: #d0d0d0;
-$dim: #555555;
-$hover: #999999;
-
+// $bg $fg $dim $hover $line ... come from colors.scss, written by ~/.local/bin/theme
+@import "colors";
 
 // == reset ==
 
@@ -19,7 +16,7 @@ $hover: #999999;
 .bar-box {
 	background-color: rgba($bg, 0.5);
 	color: $fg;
-	border: 1px solid #2a2a2a;
+	border: 1px solid $line;
 	border-radius: 4px;
 	margin: 10px 10px 0 10px;
 	padding: 0 10px;
@@ -47,21 +44,21 @@ $hover: #999999;
 	min-width: 1px;
 	min-height: 18px;
 	margin: 0 7px;
-	background-color: #2a2a2a;
+	background-color: $line;
 }
 
 // workspaces: empty = dim, has windows = gray, focused = white
 .ws {
 	padding: 0 7px;
-	color: #3a3a3a;
+	color: $faint;
 }
 
 .ws.occupied {
-	color: #888888;
+	color: $muted;
 }
 
 .ws.active {
-	color: $fg;
+	color: $accent;
 }
 
 .ws:hover {
@@ -91,7 +88,7 @@ $hover: #999999;
 .panel-box {
 	background-color: $bg;
 	color: $fg;
-	border: 1px solid #2a2a2a;
+	border: 1px solid $line;
 	border-radius: 4px;
 	padding: 16px;
 	min-width: 248px;
@@ -109,8 +106,8 @@ $hover: #999999;
 	min-width: 44px;
 	min-height: 44px;
 	border-radius: 50%;
-	border: 1px solid #2a2a2a;
-	background-color: #1a1a1a;
+	border: 1px solid $line;
+	background-color: $surface;
 	// your icon (copied from ~/Pictures/pfp)
 	background-image: url("/home/flelk/.config/eww/pfp.jpg");
 	background-size: cover;
@@ -128,38 +125,38 @@ $hover: #999999;
 
 .action:hover {
 	color: $fg;
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 // Armed Power Action:
 .action.armed,
 .action.armed:hover {
-	color: #d06060;
-	background-color: rgba(#d06060, 0.12);
+	color: $red;
+	background-color: rgba($red, 0.12);
 }
 
 .confirm-hint {
-	color: #d06060;
+	color: $red;
 	font-size: 11px;
 	margin-top: 8px;
 }
 
 // cpu/ram/vram tiles: ring gauge with the icon inside
 .stat {
-	background-color: #141414;
-	border: 1px solid #1f1f1f;
+	background-color: $sunk;
+	border: 1px solid $raised;
 	border-radius: 4px;
 	padding: 8px 12px;
 }
 
 .ring {
 	color: $fg;                 // filled part
-	background-color: #2a2a2a;  // track
+	background-color: $line;  // track
 }
 
 // the ring sizes itself to what's inside, so the icon sets its size
 .ring-icon {
-	color: #888888;
+	color: $muted;
 	font-size: 14px;
 	min-width: 38px;
 	min-height: 38px;
@@ -175,13 +172,13 @@ $hover: #999999;
 
 .sep {
 	min-height: 1px;
-	background-color: #2a2a2a;
+	background-color: $line;
 }
 
 // meters + volume share one look
 .bar-meter trough,
 .vol trough {
-	background-color: #2a2a2a;
+	background-color: $line;
 	border-radius: 2px;
 	min-height: 3px;
 }
@@ -218,7 +215,7 @@ $hover: #999999;
 }
 
 .tab.active {
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 .switch {
@@ -247,7 +244,7 @@ $hover: #999999;
 }
 
 .net-row:hover {
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 .net-row.busy {
@@ -255,7 +252,7 @@ $hover: #999999;
 }
 
 .net-row-icon {
-	color: #888888;
+	color: $muted;
 	min-width: 18px;
 }
 
@@ -271,7 +268,7 @@ $hover: #999999;
 }
 
 .net-list scrollbar slider {
-	background-color: #2a2a2a;
+	background-color: $line;
 	border-radius: 2px;
 	min-width: 3px;
 }
@@ -282,8 +279,8 @@ $hover: #999999;
 }
 
 .search {
-	background-color: #141414;
-	border: 1px solid #1f1f1f;
+	background-color: $sunk;
+	border: 1px solid $raised;
 	border-radius: 4px;
 	padding: 8px 12px;
 	caret-color: $fg;
@@ -297,16 +294,16 @@ $hover: #999999;
 }
 
 .tile:hover {
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 .tile-name {
 	font-size: 10px;
-	color: #888888;
+	color: $muted;
 }
 
 .tile.add {
-	border: 1px dashed #2a2a2a;
+	border: 1px dashed $line;
 	color: $dim;
 }
 
@@ -321,8 +318,8 @@ $hover: #999999;
 
 // now playing
 .media {
-	background-color: #141414;
-	border: 1px solid #1f1f1f;
+	background-color: $sunk;
+	border: 1px solid $raised;
 	border-radius: 4px;
 	padding: 8px;
 }
@@ -331,7 +328,7 @@ $hover: #999999;
 	min-width: 56px;
 	min-height: 56px;
 	border-radius: 4px;
-	background-color: #1a1a1a;
+	background-color: $surface;
 	background-size: cover;
 	background-position: center;
 	color: $dim;
@@ -357,7 +354,7 @@ $hover: #999999;
 
 .sys-tile.on {
 	color: $fg;
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 .sys-tile.info:hover {
@@ -373,7 +370,7 @@ $hover: #999999;
 
 // laptop battery in the bar
 .battery.low {
-	color: #d06060;
+	color: $red;
 }
 
 // power modes (power panel): same look as the network panel's tabs
@@ -396,7 +393,7 @@ $hover: #999999;
 }
 
 .net-row.active {
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 .notes-meta {
@@ -405,14 +402,14 @@ $hover: #999999;
 
 .notes-open {
 	padding: 4px 10px;
-	border: 1px solid #2a2a2a;
+	border: 1px solid $line;
 	border-radius: 4px;
 	color: $dim;
 }
 
 .notes-open:hover {
 	color: $fg;
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 .notes-add {
@@ -423,7 +420,7 @@ $hover: #999999;
 
 .notes-add:hover {
 	color: $fg;
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 // Tray Dropdown:
@@ -437,7 +434,7 @@ $hover: #999999;
 
 // Tray Icon Tile:
 .tray-well {
-	background-color: #141414;
+	background-color: $sunk;
 	border-radius: 4px;
 	padding: 12px 14px;
 }
@@ -448,8 +445,8 @@ $hover: #999999;
 
 // Tray Right Click Menus:
 .tray menu {
-	background-color: #0e0e0e;
-	border: 1px solid #2a2a2a;
+	background-color: $bg;
+	border: 1px solid $line;
 	border-radius: 4px;
 	padding: 4px;
 }
@@ -460,11 +457,11 @@ $hover: #999999;
 }
 
 .tray menu menuitem:hover {
-	background-color: #1a1a1a;
+	background-color: $surface;
 }
 
 .tray menu separator {
-	background-color: #2a2a2a;
+	background-color: $line;
 	margin: 4px 0;
 }
 
@@ -476,7 +473,7 @@ $hover: #999999;
 .dash-tile {
 	background-color: $bg;
 	color: $fg;
-	border: 1px solid #2a2a2a;
+	border: 1px solid $line;
 	border-radius: 4px;
 	padding: 20px;
 }
@@ -495,7 +492,7 @@ $hover: #999999;
 }
 
 .dash-hint {
-	color: #3a3a3a;
+	color: $faint;
 	font-size: 11px;
 }
 
@@ -521,13 +518,13 @@ $hover: #999999;
 
 // Stat Bars: icon + thick bar (also track position + disk)
 .dash-meter-icon {
-	color: #888888;
+	color: $muted;
 	font-size: 22px;
 	min-width: 28px;
 }
 
 .dash-meter trough {
-	background-color: #1f1f1f;
+	background-color: $raised;
 	border-radius: 3px;
 	min-height: 6px;
 }
@@ -565,8 +562,8 @@ $hover: #999999;
 }
 
 .dash-chip {
-	background-color: #141414;
-	border: 1px solid #1f1f1f;
+	background-color: $sunk;
+	border: 1px solid $raised;
 	border-radius: 4px;
 	padding: 6px 0;
 }
@@ -605,11 +602,11 @@ $hover: #999999;
 }
 
 .cal-day.weekend {
-	color: #888888;
+	color: $muted;
 }
 
 .cal-day.pad {
-	color: #2a2a2a;
+	color: $line;
 }
 
 .cal-day.today {
@@ -621,14 +618,14 @@ $hover: #999999;
 
 // Storage: free space tile on top, like the reference
 .dash-disk {
-	background-color: #141414;
-	border: 1px solid #1f1f1f;
+	background-color: $sunk;
+	border: 1px solid $raised;
 	border-radius: 4px;
 	padding: 16px;
 }
 
 .dash-disk-icon {
-	color: #888888;
+	color: $muted;
 	font-size: 40px;
 }
 
@@ -641,4 +638,38 @@ $hover: #999999;
 .dash-link:hover {
 	color: $hover;
 	border-bottom-color: $hover;
+}
+
+// == theme picker ==
+.themes {
+	padding: 18px;
+}
+
+.themes-dot {
+	min-width: 7px;
+	min-height: 7px;
+	border-radius: 50%;
+}
+
+// Wallpaper Thumbs: 16:9, border shows hover / applied
+.themes-wall {
+	padding: 2px;
+	border: 2px solid transparent;
+	border-radius: 6px;
+}
+
+.themes-wall:hover {
+	border-color: $dim;
+}
+
+.themes-wall.active {
+	border-color: $accent;
+}
+
+.themes-thumb {
+	min-width: 192px;
+	min-height: 108px;
+	border-radius: 4px;
+	background-size: cover;
+	background-position: center;
 }

@@ -673,3 +673,46 @@
 	(box :class "dash-tile" :space-evenly false :spacing 14
 		(label :class "dash-meter-icon" :text "󰜗")
 		(label :halign "start" :text {month.winter})))
+
+;; THEME PICKER (SUPER + T): theme tabs, that theme's wallpapers below, click one to apply both.
+;; ESC or SUPER + T closes it (themes submap). themes.sh fills the vars on open
+(defvar themes_open false)
+(defvar themes_data "[]")   ;; [{name, dots, rows: [[{path, thumb}] x3]}]
+(defvar themes_tab "")      ;; tab being looked at
+(defvar themes_cur "")      ;; theme that's applied
+(defvar themes_wall "")     ;; wallpaper that's applied
+
+(defwindow themes
+	:monitor 0
+	:geometry (geometry :x "0px" :y "0px" :anchor "center")
+	:stacking "overlay"
+	:exclusive false
+	:namespace "eww-themes"
+	(themes))
+
+(defwidget themes []
+	(box :class "panel-box themes" :orientation "v" :space-evenly false :spacing 14
+		(box :space-evenly false
+			(label :class "user" :halign "start" :hexpand true :text "themes")
+			(label :class "dim" :halign "end" :text "esc to close"))
+		;; Theme Tabs: color dots + name, ● on the applied one
+		(box :class "themes-tabs" :space-evenly false :spacing 6
+			(for t in themes_data
+				(button :class "tab ${t.name == themes_tab ? 'active' : ''}" :hexpand true
+					:onclick "eww update themes_tab=${t.name}"
+					(box :halign "center" :space-evenly false :spacing 8
+						(box :class "themes-dots" :valign "center" :space-evenly false :spacing 3
+							(for d in {t.dots}
+								(box :class "themes-dot" :style "background-color: #${d};")))
+						(label :text {t.name})
+						(label :visible {t.name == themes_cur} :text "●")))))
+		(box :class "sep")
+		;; Wallpapers: rows of 3, accent border on the applied one
+		(for t in themes_data
+			(box :visible {t.name == themes_tab} :orientation "v" :space-evenly false :spacing 10
+				(for row in {t.rows}
+					(box :space-evenly false :spacing 10
+						(for w in row
+							(button :class "themes-wall ${w.path == themes_wall ? 'active' : ''}"
+								:onclick "~/.config/eww/scripts/themes.sh pick ${t.name} '${w.path}'"
+								(box :class "themes-thumb" :style "background-image: url('${w.thumb}');")))))))))

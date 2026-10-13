@@ -25,6 +25,7 @@ hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("~/.config/eww/scripts/screen
 hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + Z",      hl.dsp.exec_cmd("~/.config/hypr/screensaver/screensaver.sh start"))
 hl.bind(mainMod .. " + TAB",    hl.dsp.exec_cmd("~/.config/eww/scripts/dash.sh toggle"))
+hl.bind(mainMod .. " + T",      hl.dsp.exec_cmd("~/.config/eww/scripts/themes.sh toggle"))
 
 -- Inactive Opacity: SUPER + = / -
 local function inactiveOpacity(step)
@@ -90,9 +91,20 @@ hl.define_submap("dash", function()
     hl.bind("XF86AudioPause",  hl.dsp.exec_cmd("playerctl play-pause"))
     hl.bind("XF86AudioPrev",   hl.dsp.exec_cmd("playerctl previous"))
 end)
+-- Theme Picker Open: ESC / SUPER + T close it
+hl.define_submap("themes", function()
+    hl.bind("ESCAPE",          hl.dsp.exec_cmd("~/.config/eww/scripts/themes.sh close"))
+    hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("~/.config/eww/scripts/themes.sh close"))
+end)
 -----------------------
 ---- LOOK AND FEEL ----
 -----------------------
+
+-- Theme Colors: written by ~/.local/bin/theme, mono if it hasn't run yet
+local ok, theme = pcall(dofile, os.getenv("HOME") .. "/.cache/theme/hypr.lua")
+if not ok or type(theme) ~= "table" then
+    theme = { active = "rgba(d0d0d0ff)", inactive = "rgba(2a2a2aff)" }
+end
 
 hl.config({
     general = {
@@ -101,8 +113,8 @@ hl.config({
         border_size = 1,
 
         col = {
-            active_border   = "rgba(d0d0d0ff)",
-            inactive_border = "rgba(2a2a2aff)",
+            active_border   = theme.active,
+            inactive_border = theme.inactive,
         },
 
         layout = "dwindle",
@@ -177,11 +189,11 @@ hl.on("hyprland.start", function ()
      -- Boot Into Lock Screen + Idle:
      hl.exec_cmd("hyprlock")
      hl.exec_cmd("hypridle")
-     hl.exec_cmd("swaybg -i ~/dotfiles/wallpapers/stairs.png -m fill")
      hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
      hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
      hl.exec_cmd("mako")
-	 hl.exec_cmd("eww daemon && eww open bar --id bar0 --arg monitor=0; eww open bar --id bar1 --arg monitor=1")
+	 -- theme restore first: it writes eww's colors.scss + starts swaybg
+	 hl.exec_cmd("~/.local/bin/theme restore; eww daemon && eww open bar --id bar0 --arg monitor=0; eww open bar --id bar1 --arg monitor=1")
 end)
 
 --------------------------------
@@ -235,6 +247,13 @@ hl.layer_rule({
     animation    = "fade",
     blur         = true,
     ignore_alpha = 0.3,
+})
+
+-- Eww Theme Picker:
+hl.layer_rule({
+    name      = "eww-themes-pop",
+    match     = { namespace = "^eww-themes$" },
+    animation = "popin 90%",
 })
 
 -- Stargazing (sky.py over the dashboard):

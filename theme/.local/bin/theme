@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# theme: switch the rice's colors + wallpaper (palettes in ~/.config/theme/*.sh)
+# The picker is eww's (SUPER + T, ~/.config/eww/scripts/themes.sh), this does the work.
+#   theme                 list themes, current one marked
+#   theme <name> [wall]   apply <name> with wallpaper [wall], or a random one from ~/dotfiles/wallpapers/<name>/
+#   theme restore         re-apply the saved theme + wallpaper (autostart)
+
+palettes="$HOME/.config/theme"
+walls="$HOME/dotfiles/wallpapers"
+state="$HOME/.local/state/theme"   # name + wallpaper (symlink, hyprlock uses it too)
+cache="$HOME/.cache/theme"         # rendered files the app configs include
+mkdir -p "$state" "$cache"
+
+current=$(cat "$state/name" 2>/dev/null)
+[ -f "$palettes/$current.sh" ] || current=mono
+
+# Render: palette → eww, kitty, fuzzel, mako, hyprland
+render() {
+    source "$palettes/$1.sh"
+
+    cat > "$HOME/.config/eww/colors.scss" <<EOF
+// written by ~/.local/bin/theme ($1), don't edit
+\$bg: #$bg;
+\$sunk: #$sunk;
+\$surface: #$surface;
+\$raised: #$raised;
+\$line: #$line;
+\$faint: #$faint;
+\$dim: #$dim;
+\$muted: #$muted;
+\$hover: #$hover;
+\$fg: #$fg;
+\$red: #$red;
+\$accent: #$accent;
+EOF
+
+    {
+        echo "# written by ~/.local/bin/theme ($1), don't edit"
+        echo "background           #$term_bg"
+        echo "foreground           #$term_fg"
+        echo "cursor               #$term_fg"
+        echo "selection_background #$term_sel"
+        echo "selection_foreground #$bright"
+        for i in "${!ansi[@]}"; do echo "color$i #${ansi[$i]}"; done
+    } > "$cache/kitty.conf"
+
+    cat > "$cache/fuzzel.ini" <<EOF
+# written by ~/.local/bin/theme ($1), don't edit
+[colors]
+background=${bg}eb
+text=${dim}ff
+prompt=${dim}ff
+placeholder=${faint}ff
+input=${fg}ff
+match=${accent}ff
+selection=${surface}ff
+selection-text=${bright}ff
+selection-match=${bright}ff
+border=${line}ff
+EOF
+
+    cat > "$cache/mako" <<EOF
+# written by ~/.local/bin/theme ($1), don't edit
+background-color=#${bg}eb
+text-color=#$fg
+border-color=#$line
+progress-color=over #$surface
+
+[urgency=low]
+text-color=#$dim
+
+[urgency=critical]
+border-color=#$red
+default-timeout=0
+EOF
+
+    cat > "$cache/hypr.lua" <<EOF
+-- written by ~/.local/bin/theme ($1), don't edit
+return { active = "rgba(${accent}ff)", inactive = "rgba(${line}ff)" }
+EOF
+}
+
+# Wallpaper Pool: the theme's folder, sorted, stairs.png if it has none
+pool() {
+    shopt -s nullglob
+    pool=("$walls/$1"/*.{png,jpg,jpeg,webp})
+    [ ${#pool[@]} -gt 0 ] || pool=("$walls/mono/stairs.png")
+    mapfile -t pool < <(printf '%s\n' "${pool[@]}" | sort)
+}
+
+# Wallpaper: given path, or a random pick from the theme's pool
+wallpaper() {
+    local wall=$1
+    if [ -z "$wall" ]; then
+        pool "$2"
+        wall=${pool[RANDOM % ${#pool[@]}]}
+    fi
+    ln -sfn "$wall" "$state/wallpaper"
+
+    # new swaybg first, then kill the old one: no black flash
+    local old=$(pgrep -x swaybg)
+    setsid -f swaybg -i "$wall" -m fill >/dev/null 2>&1
+    sleep 0.4
+    [ -n "$old" ] && kill $old
+}
+
+case "$1" in
+    restore)
+        had_hypr=$([ -f "$cache/hypr.lua" ] && echo 1)
+        render "$current"
+        wallpaper "$(readlink "$state/wallpaper")" "$current"
+        [ -z "$had_hypr" ] && hyprctl reload >/dev/null
+        exit 0
+        ;;
+    "")
+        for p in "$palettes"/*.sh; do
+            n=$(basename "$p" .sh)
+            [ "$n" = "$current" ] && echo "* $n" || echo "  $n"
+        done
+        exit 0
+        ;;
+esac
+
+name=$1
+[ -f "$palettes/$name.sh" ] || { echo "theme: no palette $palettes/$name.sh" >&2; exit 1; }
+
+# Same Theme: only the wallpaper changes, skip the reloads
+if [ "$name" = "$current" ] && [ -n "$2" ]; then
+    wallpaper "$2"
+    exit 0
+fi
+
+echo "$name" > "$state/name"
+render "$name"
+wallpaper "$2" "$name"
+
+# Live Reload:
+pgrep -x eww >/dev/null && eww reload
+pkill -USR1 -x kitty
+makoctl reload
+hyprctl reload >/dev/null
