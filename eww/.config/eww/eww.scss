@@ -22,14 +22,19 @@ $hover: #999999;
 	border: 1px solid #2a2a2a;
 	border-radius: 4px;
 	margin: 10px 10px 0 10px;
-	padding: 0 8px;
+	padding: 0 10px;
+}
+
+// Bar Text:
+.bar-box label {
+	font-size: 14px;
 }
 
 // arch logo, left of the workspaces
 .arch {
-	padding: 0 6px 0 4px;
+	padding: 0 7px 0 4px;
 	label {
-		font-size: 15px;
+		font-size: 17px;
 	}
 }
 
@@ -40,14 +45,14 @@ $hover: #999999;
 // vertical line between the arch logo and the workspaces
 .vsep {
 	min-width: 1px;
-	min-height: 16px;
-	margin: 0 6px;
+	min-height: 18px;
+	margin: 0 7px;
 	background-color: #2a2a2a;
 }
 
 // workspaces: empty = dim, has windows = gray, focused = white
 .ws {
-	padding: 0 6px;
+	padding: 0 7px;
 	color: #3a3a3a;
 }
 
@@ -65,7 +70,7 @@ $hover: #999999;
 
 // power button
 .power {
-	padding: 0 4px;
+	padding: 0 5px;
 }
 
 .power:hover {
@@ -124,6 +129,19 @@ $hover: #999999;
 .action:hover {
 	color: $fg;
 	background-color: #1a1a1a;
+}
+
+// Armed Power Action:
+.action.armed,
+.action.armed:hover {
+	color: #d06060;
+	background-color: rgba(#d06060, 0.12);
+}
+
+.confirm-hint {
+	color: #d06060;
+	font-size: 11px;
+	margin-top: 8px;
 }
 
 // cpu/ram/vram tiles: ring gauge with the icon inside
@@ -406,4 +424,46 @@ $hover: #999999;
 .notes-add:hover {
 	color: $fg;
 	background-color: #1a1a1a;
+}
+
+// Tray Dropdown:
+.tray-zone {
+	padding: 10px 30px 0 0;
+}
+
+.tray-drop {
+	min-width: 200px;
+}
+
+// Tray Icon Tile:
+.tray-well {
+	background-color: #141414;
+	border-radius: 4px;
+	padding: 12px 14px;
+}
+
+.tray-hint {
+	margin: 0;
+}
+
+// Tray Right Click Menus:
+.tray menu {
+	background-color: #0e0e0e;
+	border: 1px solid #2a2a2a;
+	border-radius: 4px;
+	padding: 4px;
+}
+
+.tray menu menuitem {
+	padding: 4px 8px;
+	border-radius: 4px;
+}
+
+.tray menu menuitem:hover {
+	background-color: #1a1a1a;
+}
+
+.tray menu separator {
+	background-color: #2a2a2a;
+	margin: 4px 0;
 }

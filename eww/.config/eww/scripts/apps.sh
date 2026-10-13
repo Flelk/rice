@@ -4,6 +4,7 @@
 #   apps.sh pinned         pinned apps as JSON rows of 4, "+" tile last: [[{id,name,icon},...],...]
 #   apps.sh search QUERY   first 6 apps whose name contains QUERY, as JSON: [{id,name,icon},...]
 # pinned apps live in ~/.config/eww/pinned, one desktop id per line (e.g. kitty.desktop)
+# (local only, not in git: first run copies pinned.default)
 PINNED="$HOME/.config/eww/pinned"
 COLS=4
 
@@ -46,7 +47,7 @@ to_json() {
 case "$1" in
 	all) all ;;
 	pinned)
-		touch "$PINNED"
+		[ -f "$PINNED" ] || cp "$PINNED.default" "$PINNED" 2>/dev/null || touch "$PINNED"
 		all | awk -F'\t' 'FILENAME == ARGV[1] { order[$1] = FNR; next } $1 in order { print order[$1] "\t" $0 }' "$PINNED" - \
 			| sort -n | cut -f2- | to_json \
 			| jq -c --argjson n "$COLS" '. + [{id: "+", name: "add", icon: ""}] | [range(0; length; $n) as $i | .[$i:$i + $n]]' ;;

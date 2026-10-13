@@ -19,11 +19,12 @@ APPS=~/.config/eww/scripts/apps.sh
 PINNED=~/.config/eww/pinned
 
 open() {
+    ~/.config/eww/scripts/tray.sh close
     ~/.config/eww/scripts/panel.sh close   # one panel at a time
     ~/.config/eww/scripts/net.sh close
     ~/.config/eww/scripts/notes.sh close
     eww update start_pinned="$($APPS pinned)" start_query="" start_results="[]" start_rice=false
-    eww open start --screen "${1:-0}" && eww update start_open=true
+    eww open start --screen "${1:-$(hyprctl activeworkspace -j | jq .monitorID)}" && eww update start_open=true
     # sections fade in one after another
     for n in 1 2 3 4 5; do sleep 0.08; eww update start_stage=$n; done
 }

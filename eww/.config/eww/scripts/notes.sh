@@ -120,13 +120,14 @@ new_page() {
 }
 
 open() {
+    ~/.config/eww/scripts/tray.sh close
     ~/.config/eww/scripts/panel.sh close   # one panel at a time
     ~/.config/eww/scripts/net.sh close
     ~/.config/eww/scripts/start.sh close
     mkdir -p "$VAULT"
     # filled in before the window maps so it doesn't resize while sliding in
     eww update notes_books="$(books)" notes_sel=-1 notes_book="" notes_pages="[]" notes_open=true
-    eww open notes --screen "${1:-0}"
+    eww open notes --screen "${1:-$(hyprctl activeworkspace -j | jq .monitorID)}"
 }
 
 close() {

@@ -1,7 +1,7 @@
 (defwindow bar [monitor]
 	:monitor monitor
 	:geometry (geometry :x "0%" :y "0%"
-						:width "100%" :height "40px"
+						:width "100%" :height "44px"
 						:anchor "top center")
 	:stacking "fg"
 	:exclusive true
@@ -12,6 +12,10 @@
 	"nmcli -t -f TYPE,STATE dev | awk -F: '$2 == \"connected\" {c[$1] = 1} END {print c[\"ethernet\"] ? \"󰈀\" : c[\"wifi\"] ? \"󰤨\" : \"󰤭\"}'")
 
 (defpoll clock :interval "1s" "date '+%a %d · %H:%M:%S'")
+(defvar tray_open false)
+;; Tray App Count:
+(defpoll tray_count :interval "2s" :run-while tray_open :initial "0"
+	"busctl --user get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems 2>/dev/null | awk '{print $2 + 0}'")
 
 ;; laptop battery (hidden on the desktop: battery.sh skips mouse/keyboard batteries)
 (defpoll battery :interval "10s" :initial "{\"on\":false,\"pct\":0,\"state\":\"\",\"icon\":\"\",\"low\":false}"
@@ -35,6 +39,10 @@
 				:onrightclick "~/.config/eww/scripts/screenshot.sh screen"
 				"󰹑")
 			(button :class "power" :onclick "~/.config/eww/scripts/net.sh toggle ${monitor}" net_icon)
+			;; Tray Arrow:
+			(button :class "power" :tooltip "tray"
+				:onclick "~/.config/eww/scripts/tray.sh toggle ${monitor}"
+				{tray_open ? "󰅃" : "󰅀"})
 			;; battery: click opens the power panel (where the power modes are)
 			(button :class "power battery ${battery.low ? 'low' : ''}" :visible {battery.on}
 				:tooltip {battery.state == "charging" ? "charging" : battery.state == "plugged" ? "plugged in" : "on battery"}
@@ -58,6 +66,7 @@
 ;; closes when the mouse leaves the hover zone
 (defvar panel_open false)
 (defvar panel_stage 0)
+(defvar power_arm "")
 (deflisten volume :initial "0" "~/.config/eww/scripts/volume.sh")
 (defpoll brightness :interval "30s" "~/.config/eww/scripts/brightness.sh get")
 (defpoll vram :interval "2s"   ;; "" without an nvidia card: the vram tile hides itself
@@ -91,12 +100,17 @@
 				(label :class "user" :halign "start" :text "flelk")
 				(label :class "dim" :halign "start" :text "up ${uptime}"))))
 		;; power actions
-		(stage :n 2 (box :class "actions" :spacing 4
-			(action :icon "⏻" :tip "Shut down" :cmd "poweroff")
-			(action :icon "󰜉" :tip "Reboot"    :cmd "reboot")
-			(action :icon "󰌾" :tip "Lock"      :cmd "lock")
-			(action :icon "󰒲" :tip "Sleep"     :cmd "suspend")
-			(action :icon "󰍃" :tip "Log out"   :cmd "logout")))
+		;; Power Actions: click arms, enter confirms
+		(stage :n 2 (box :orientation "v" :space-evenly false
+			(box :class "actions" :spacing 4
+				(action :icon "⏻" :tip "Shut down" :cmd "poweroff")
+				(action :icon "󰜉" :tip "Reboot"    :cmd "reboot")
+				(action :icon "󰌾" :tip "Lock"      :cmd "lock")
+				(action :icon "󰒲" :tip "Sleep"     :cmd "suspend")
+				(action :icon "󰍃" :tip "Log out"   :cmd "logout"))
+			(revealer :reveal {power_arm != ""} :transition "slidedown" :duration "150ms"
+				(label :class "confirm-hint" :halign "start"
+					:text "enter to ${power_arm == 'poweroff' ? 'shut down' : power_arm == 'suspend' ? 'sleep' : power_arm == 'logout' ? 'log out' : power_arm} · esc to cancel"))))
 		(box :class "sep")
 		;; stats
 		(stage :n 3 (box :orientation "v" :space-evenly false :spacing 6
@@ -123,8 +137,8 @@
 				:onchange "~/.config/eww/scripts/brightness.sh set {}"))))))
 
 (defwidget action [icon tip cmd]
-	(button :class "action" :tooltip tip
-		:onclick "~/.config/eww/scripts/panel.sh ${cmd}"
+	(button :class "action ${power_arm == cmd ? 'armed' : ''}" :tooltip tip
+		:onclick "~/.config/eww/scripts/panel.sh arm ${cmd}"
 		(label :text icon)))
 
 (defwidget mode [name icon text]
@@ -292,6 +306,27 @@
 	:namespace "eww-panel"
 	(eventbox :onhoverlost "~/.config/eww/scripts/net.sh close"
 		(box :class "panel-zone" (net))))
+
+;; TRAY DROPDOWN: no hover close (breaks right click menus)
+(defwindow tray
+	:monitor 0
+	:geometry (geometry :x "0px" :y "0px" :anchor "top right")
+	:stacking "overlay"
+	:exclusive false
+	:namespace "eww-tray"
+	(box :class "tray-zone"
+		(box :class "panel-box tray-drop" :orientation "v" :space-evenly false :spacing 10
+			(box :space-evenly false
+				(label :class "user" :halign "start" :hexpand true :text "tray")
+				(label :class "dim" :halign "end" :valign "center"
+					:text {tray_count == 1 ? "1 app" : "${tray_count} apps"}))
+			(box :class "sep")
+			;; Tray Icons:
+			(box :class "tray-well" :visible {tray_count > 0}
+				(systray :class "tray" :halign "start" :spacing 14 :icon-size 20 :prepend-new false))
+			(label :class "net-empty dim" :halign "start" :visible {tray_count == 0}
+				:text "nothing in the tray")
+			(label :class "section tray-hint" :halign "start" :text "right click for options"))))
 
 (defwidget net []
 	(box :class "panel-box net-box" :orientation "v" :space-evenly false :spacing 14

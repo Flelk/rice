@@ -33,3 +33,5 @@ pacman-contrib
 code
 power-profiles-daemon
 obsidian
+hypridle
+python

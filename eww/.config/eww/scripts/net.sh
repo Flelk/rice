@@ -37,11 +37,12 @@ busy() {
 }
 
 open() {
+    ~/.config/eww/scripts/tray.sh close
     ~/.config/eww/scripts/panel.sh close   # one panel at a time
     ~/.config/eww/scripts/start.sh close
     ~/.config/eww/scripts/notes.sh close
     eww update net_tab=wifi
-    eww open net --screen "${1:-0}" && eww update net_open=true
+    eww open net --screen "${1:-$(hyprctl activeworkspace -j | jq .monitorID)}" && eww update net_open=true
     nmcli dev wifi rescan >/dev/null 2>&1
 }
 

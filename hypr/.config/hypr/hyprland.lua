@@ -16,16 +16,30 @@ local mainMod = "SUPER"
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + W",      hl.dsp.window.close())
 hl.bind(mainMod .. " + SHIFT + RETURN", hl.dsp.exec_cmd("google-chrome-stable"))
-hl.bind(mainMod .. " + M",      hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
-hl.bind(mainMod .. " + L",      hl.dsp.exec_cmd("pidof hyprlock || hyprlock"))
-hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd(fileManager))
-hl.bind(mainMod .. " + I",      hl.dsp.window.float({ action = "toggle" }))
+
+-- Script Keybinds:
+hl.bind(mainMod .. " + ESCAPE",   hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh toggle"))
+hl.bind(mainMod .. " + SUPER_L",  hl.dsp.exec_cmd("~/.config/eww/scripts/start.sh toggle"), { release = true })
 hl.bind(mainMod .. " + SPACE",  hl.dsp.exec_cmd(menu))
-hl.bind(mainMod .. " + P",      hl.dsp.window.pseudo())
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("~/.config/eww/scripts/screenshot.sh"))
+hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd(fileManager))
+hl.bind(mainMod .. " + Z",      hl.dsp.exec_cmd("~/.config/hypr/screensaver/screensaver.sh start"))
+
+-- Inactive Opacity: SUPER + = / -
+local function inactiveOpacity(step)
+    local o = hl.get_config("decoration.inactive_opacity") + step
+    hl.config({ decoration = { inactive_opacity = math.max(0.1, math.min(1, o)) } })
+end
+hl.bind(mainMod .. " + EQUAL", function() inactiveOpacity(0.05) end,  { repeating = true })
+hl.bind(mainMod .. " + MINUS", function() inactiveOpacity(-0.05) end, { repeating = true })
+
+-- ETC Keybinds:
+hl.bind(mainMod .. " + M",      hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh ask logout"))
+hl.bind(mainMod .. " + L",      hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh ask lock"))
+hl.bind(mainMod .. " + F",      hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + J",      hl.dsp.layout("togglesplit"))
 hl.bind(mainMod .. " + C",		hl.dsp.send_shortcut({ mods = "CTRL", key = "Insert" }))
 hl.bind(mainMod .. " + V",		hl.dsp.send_shortcut({ mods = "SHIFT", key = "Insert" }))
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("~/.config/eww/scripts/screenshot.sh"))
 
 
 -- Window Focus:
@@ -59,6 +73,12 @@ hl.bind("XF86AudioPause",        hl.dsp.exec_cmd("playerctl play-pause"), { lock
 hl.bind("XF86AudioPlay",         hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPrev",         hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
+-- Power Panel Confirm Function
+hl.define_submap("power-confirm", function()
+    hl.bind("RETURN",   hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh confirm"))
+    hl.bind("KP_Enter", hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh confirm"))
+    hl.bind("ESCAPE",   hl.dsp.exec_cmd("~/.config/eww/scripts/panel.sh disarm"))
+end)
 -----------------------
 ---- LOOK AND FEEL ----
 -----------------------
@@ -82,7 +102,7 @@ hl.config({
         rounding_power = 2,
 
 		active_opacity   = 0.99,
-        inactive_opacity = 0.7,
+        inactive_opacity = 0.9,
 
         shadow = {
             enabled      = true,
@@ -110,6 +130,7 @@ hl.config({
     misc = {
         force_default_wallpaper = 0,
         disable_hyprland_logo   = true,
+        focus_on_activate       = true,
     },
 })
 
@@ -142,13 +163,14 @@ hl.animation({ leaf = "zoomFactor",    enabled = true, speed = 7,    bezier = "q
 -------------------
 
 hl.on("hyprland.start", function ()
+     -- Boot Into Lock Screen + Idle:
+     hl.exec_cmd("hyprlock")
+     hl.exec_cmd("hypridle")
      hl.exec_cmd("swaybg -i ~/dotfiles/wallpapers/stairs.png -m fill")
      hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
      hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
      hl.exec_cmd("mako")
 	 hl.exec_cmd("eww daemon && eww open bar --id bar0 --arg monitor=0; eww open bar --id bar1 --arg monitor=1")
---     hl.exec_cmd("eww daemon")
---     hl.exec_cmd("eww open bar")
 end)
 
 --------------------------------
@@ -174,18 +196,34 @@ hl.window_rule({
     no_focus = true,
 })
 
--- eww power panel: slide in/out from the right (done on the GPU, smoother than eww's own slide)
+-- Eww Power Panel: On GPU
 hl.layer_rule({
     name      = "eww-panel-slide",
     match     = { namespace = "^eww-panel$" },
     animation = "slide right",
 })
 
--- eww start panel (arch button): same, from the left
+-- Eww Tray Dropdown:
+hl.layer_rule({
+    name      = "eww-tray-pop",
+    match     = { namespace = "^eww-tray$" },
+    animation = "popin 90%",
+})
+
+-- Eww Start Panel:
 hl.layer_rule({
     name      = "eww-start-slide",
     match     = { namespace = "^eww-start$" },
     animation = "slide left",
+})
+
+-- Joke Screensaver: Fullscreen + Slide
+hl.window_rule({
+    name       = "screensaver",
+    match      = { class = "^screensaver$" },
+    fullscreen = true,
+    float      = true,
+    animation  = "slide",
 })
 
 hl.window_rule({
@@ -204,7 +242,7 @@ hl.config({
         kb_layout    = "us",
         follow_mouse = 1,
 
-        -- Windows speed 7/20, no "Enhance pointer precision" (0.625x)
+        
         accel_profile = "flat",
         sensitivity   = -0.375,
 
@@ -234,8 +272,7 @@ hl.monitor({
 	position = "0x0",
 	scale 	 = 1,
 })
--- For Desktop (matched by description so DP-* renumbering doesn't break it)
--- HP E273 on the left
+
 hl.monitor({
     output   = "desc:HP Inc. HP E273",
     mode     = "1920x1080@60",
@@ -243,7 +280,6 @@ hl.monitor({
     scale    = 1,
 })
 
--- OMEN X 27 (240Hz) on the right
 hl.monitor({
 	output	 = "desc:HP Inc. OMEN X 27",
 	mode	 = "1920x1080@239.76",
@@ -260,6 +296,7 @@ hl.config({
     },
 })
 
+-- Permissions for Screencopy
 hl.permission("/usr/(bin|local/bin)/grim", "screencopy", "allow")
+hl.permission("/usr/(bin|local/bin)/hyprlock", "screencopy", "allow")
 hl.permission("/usr/(lib|libexec|lib64)/xdg-desktop-portal-hyprland", "screencopy", "allow")
--- hl.permission("/usr/(bin|local/bin)/hyprpm", "plugin", "allow")

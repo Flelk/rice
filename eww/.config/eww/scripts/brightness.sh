@@ -1,8 +1,6 @@
 #!/bin/sh
-# Screen brightness: the backlight on a laptop, DDC/CI on a desktop (external monitors have no
-# backlight device).
-#   brightness.sh get      print brightness of the first monitor (0-100)
-#   brightness.sh set N    set every monitor to N (latest call wins while dragging)
+# Screen brightness: the backlight on a laptop, DDC/CI on a desktop (external monitors have no.
+
 buses() {
     # monitor i2c buses, detected once per boot (detection is slow)
     cache="${XDG_RUNTIME_DIR:-/tmp}/eww-ddc-buses"
@@ -24,9 +22,6 @@ fi
 
 case "$1" in
     get)
-        # DDC reads go through the nvidia driver and freeze hyprland (and the mouse) for ~170ms,
-        # and eww re-runs this every time the power panel opens. So only ask the monitor once
-        # per boot; after that `set` keeps $last up to date.
         if [ ! -s "$last" ]; then
             ddcutil getvcp 10 --bus "$(buses | head -n1)" --brief 2>/dev/null |
                 awk '{print $4; f=1} END {if (!f) print 50}' > "$last"
